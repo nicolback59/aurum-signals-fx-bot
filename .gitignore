@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.webpack/
+out/
+*.db
+*.db-shm
+*.db-wal
+.env
+*.log

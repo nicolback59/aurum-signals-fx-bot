@@ -1,0 +1,39 @@
+{
+  "name": "aurum-signals-fx-bot",
+  "productName": "Aurum Signals FX Bot",
+  "version": "1.0.0",
+  "description": "Automated MNQ futures trading bot — production execution engine",
+  "main": ".webpack/main",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "build:backtest": "ts-node src/backtest/backtestEngine.ts",
+    "lint": "eslint src --ext .ts,.tsx"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.4.0",
+    "@electron-forge/maker-squirrel": "^7.4.0",
+    "@electron-forge/plugin-webpack": "^7.4.0",
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/luxon": "^3.4.2",
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "css-loader": "^7.1.0",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@stoqey/ib": "^1.5.6",
+    "better-sqlite3": "^9.6.0",
+    "dotenv": "^16.4.5",
+    "electron": "^31.0.0",
+    "luxon": "^3.7.2",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "recharts": "^2.12.0"
+  }
+}
