@@ -6,9 +6,11 @@ import { TradeHistory } from './components/TradeHistory';
 import { BacktestPanel } from './components/BacktestPanel';
 import { WeeklyReport } from './components/WeeklyReport';
 import { ErrorLog } from './components/ErrorLog';
+import { LoginScreen } from './components/LoginScreen';
+import { SettingsPanel } from './components/SettingsPanel';
 import type { BotState } from '../types';
 
-type Tab = 'live' | 'trades' | 'backtest' | 'reports' | 'logs';
+type Tab = 'live' | 'trades' | 'backtest' | 'reports' | 'logs' | 'settings';
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'live', label: 'Live' },
@@ -16,18 +18,21 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'backtest', label: 'Backtest' },
   { id: 'reports', label: 'Reports' },
   { id: 'logs', label: 'Logs' },
+  { id: 'settings', label: 'Settings' },
 ];
 
 export function App(): JSX.Element {
+  const [loggedIn, setLoggedIn] = useState(false);
   const [state, setState] = useState<BotState | null>(null);
   const [tab, setTab] = useState<Tab>('live');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (!loggedIn) return;
     void window.aurum.getState().then(setState);
     const off = window.aurum.onState(setState);
     return off;
-  }, []);
+  }, [loggedIn]);
 
   const start = useCallback(async () => {
     setBusy(true);
@@ -40,6 +45,16 @@ export function App(): JSX.Element {
     setState(await window.aurum.stopBot());
     setBusy(false);
   }, []);
+
+  const logout = useCallback(() => {
+    setLoggedIn(false);
+    setState(null);
+    setTab('live');
+  }, []);
+
+  if (!loggedIn) {
+    return <LoginScreen onLogin={() => setLoggedIn(true)} />;
+  }
 
   const running = state?.runState === 'running' || state?.runState === 'connecting';
 
@@ -60,6 +75,9 @@ export function App(): JSX.Element {
               START BOT
             </button>
           )}
+          <button className="btn" onClick={logout} style={{ marginLeft: 8 }}>
+            Log Out
+          </button>
         </div>
       </header>
 
@@ -87,6 +105,7 @@ export function App(): JSX.Element {
             {tab === 'backtest' && <BacktestPanel />}
             {tab === 'reports' && <WeeklyReport />}
             {tab === 'logs' && <ErrorLog />}
+            {tab === 'settings' && <SettingsPanel />}
           </section>
         </main>
       </div>

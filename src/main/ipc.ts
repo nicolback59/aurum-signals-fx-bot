@@ -24,6 +24,9 @@ export const IPC = {
   REPORT_WEEKLY: 'report:weekly',
   REPORT_DAILY: 'report:daily',
   LOGS_LIST: 'logs:list',
+  AUTH_LOGIN: 'auth:login',
+  SETTINGS_GET: 'settings:get',
+  SETTINGS_SAVE: 'settings:save',
 } as const;
 
 export function registerIpc(controller: BotController): void {
@@ -42,6 +45,22 @@ export function registerIpc(controller: BotController): void {
   ipcMain.handle(IPC.TRADES_LIST, () => controller.getDb().listTrades());
 
   ipcMain.handle(IPC.LOGS_LIST, () => controller.getLogger().recent(300));
+
+  ipcMain.handle(IPC.AUTH_LOGIN, (_e, { username, passwordHash }: { username: string; passwordHash: string }) => {
+    const db = controller.getDb();
+    const ok = db.verifyUser(username, passwordHash);
+    return { success: ok };
+  });
+
+  ipcMain.handle(IPC.SETTINGS_GET, () => controller.getDb().getAllSettings());
+
+  ipcMain.handle(IPC.SETTINGS_SAVE, (_e, settings: Record<string, string>) => {
+    const db = controller.getDb();
+    for (const [key, value] of Object.entries(settings)) {
+      db.setSetting(key, value);
+    }
+    return { success: true };
+  });
 
   ipcMain.handle(IPC.REPORT_WEEKLY, () => weeklyReport(controller.getDb()));
 
