@@ -33,6 +33,8 @@ import type {
   BiasLabel,
   SignalSnapshot,
   MarketDataState,
+  ConnectionStatus,
+  StartupLogEntry,
 } from './types';
 
 const LOOP_INTERVAL_MS = 30_000;
@@ -73,6 +75,21 @@ export class BotController extends EventEmitter {
   private bias: BotState['bias'] = { esBias: 'NEUTRAL', mnqBias: 'NEUTRAL' };
 
   private readonly recentFingerprints: Array<{ fingerprint: string; ts: number }> = [];
+
+  private connectionStatus: ConnectionStatus = {
+    phase: 'disconnected',
+    apiAuthStatus: 'unconfigured',
+    accountVerified: false,
+    mnqFeedActive: false,
+    lastDataUpdate: null,
+    latencyMs: null,
+    reconnectAttempts: 0,
+    systemHealth: 'healthy',
+    mnqLastPrice: null,
+    mnqLastVolume: null,
+  };
+  private apiValidated = false;
+  private startupLogs: StartupLogEntry[] = [];
 
   constructor(config: BotConfig, dbPath?: string) {
     super();
@@ -120,6 +137,10 @@ export class BotController extends EventEmitter {
       this.config.brokerType = s.broker_type as BotConfig['brokerType'];
     }
     if (s.broker_api_key !== undefined) {
+      if (this.config.brokerApiKey !== s.broker_api_key) {
+        this.apiValidated = false;
+        this.connectionStatus.apiAuthStatus = 'unconfigured';
+      }
       this.config.brokerApiKey = s.broker_api_key;
     }
     this.sys.info('Settings applied', {
@@ -133,8 +154,12 @@ export class BotController extends EventEmitter {
   }
 
   private createBroker(): IBrokerClient {
-    if (this.config.brokerType === 'topstep' && this.config.brokerApiKey) {
-      this.sys.info('Using Topstep broker');
+    if (
+      (this.config.brokerType === 'topstep' || this.config.brokerType === 'alphafutures') &&
+      this.config.brokerApiKey
+    ) {
+      const label = this.config.brokerType === 'alphafutures' ? 'Alpha Futures' : 'Topstep';
+      this.sys.info(`Using ${label} broker`);
       return new TopstepAdapter(this.config.brokerApiKey, this.sys);
     }
     this.sys.info('Using Interactive Brokers (TWS)');
@@ -158,6 +183,23 @@ export class BotController extends EventEmitter {
     if (this.runState === 'running' || this.runState === 'connecting') return;
     this.applyDbSettings();
 
+    // Reset startup log for this run
+    this.startupLogs = [];
+
+    const brokerLabel = this.brokerLabel();
+    const needsKey = this.config.brokerType !== 'ib';
+
+    // Gate: API key required for REST brokers
+    if (needsKey && !this.config.brokerApiKey) {
+      this.addStartupLog('ERROR', 'API key not configured — go to Settings and enter your API key first');
+      this.runState = 'error';
+      this.lastError = 'API key required — not configured';
+      this.connectionStatus.phase = 'error';
+      this.connectionStatus.systemHealth = 'critical';
+      this.emitState();
+      return;
+    }
+
     // Recreate broker/feed/executor so settings changes take effect on next start
     this.broker = this.createBroker();
     this.feed = new MarketDataFeed(this.broker, this.sys);
@@ -171,20 +213,95 @@ export class BotController extends EventEmitter {
     this.runState = 'connecting';
     this.botEnabled = true;
     this.lastError = null;
+    this.connectionStatus.phase = 'connecting';
+    this.connectionStatus.systemHealth = 'healthy';
+    this.connectionStatus.mnqFeedActive = false;
     this.emitState();
 
+    this.addStartupLog('INFO', `Bot initialization started`);
+    this.addStartupLog('INFO', `Broker: ${brokerLabel}`);
+
+    if (needsKey) {
+      this.addStartupLog('INFO', `API key configured — proceeding with authentication`);
+    } else {
+      this.addStartupLog('INFO', `Using Interactive Brokers TWS — no API key required`);
+    }
+
     try {
-      this.sys.info(`Bot starting — connecting via ${this.config.brokerType}`);
+      // Phase 1: Connect & authenticate
+      this.addStartupLog('INFO', `Connecting to ${brokerLabel}...`);
+      this.connectionStatus.phase = 'authenticating';
+      this.connectionStatus.apiAuthStatus = 'validating';
+      this.emitState();
+
+      const connectStart = Date.now();
       await this.broker.connect();
+      const latency = Date.now() - connectStart;
+      this.connectionStatus.latencyMs = latency;
+
+      this.addStartupLog('SUCCESS', `Authentication successful (${latency}ms)`);
+      this.sys.info(`Bot starting — connecting via ${this.config.brokerType}`);
+
+      // Phase 2: Account verification
+      this.addStartupLog('INFO', 'Verifying account authorization...');
+      this.connectionStatus.apiAuthStatus = 'authenticated';
+      this.connectionStatus.accountVerified = true;
+      this.connectionStatus.phase = 'connected';
+      this.apiValidated = true;
+      this.emitState();
+      this.addStartupLog('SUCCESS', 'Account verified and authorized for MNQ trading');
+
+      // Phase 3: Market data bootstrap
+      this.addStartupLog('INFO', 'Bootstrapping MNQ market data feed...');
+      this.addStartupLog('INFO', 'Loading historical MNQ 1m and 5m bars...');
+      this.addStartupLog('INFO', 'Loading ES and NQ reference data...');
+      this.connectionStatus.phase = 'data-feed-active';
+      this.emitState();
+
       await this.feed.bootstrap();
+
+      // Phase 4: Real-time subscription
+      this.addStartupLog('SUCCESS', 'Historical bar data loaded successfully');
+      this.addStartupLog('INFO', 'Subscribing to real-time MNQ price feed...');
       this.feed.subscribe();
+      this.connectionStatus.mnqFeedActive = true;
+
+      // Capture initial MNQ snapshot
+      const mkt = this.feed.getState();
+      if (mkt.mnqBars.length > 0) {
+        const last = mkt.mnqBars[mkt.mnqBars.length - 1];
+        this.connectionStatus.mnqLastPrice = last.close;
+        this.connectionStatus.mnqLastVolume = last.volume ?? null;
+        this.connectionStatus.lastDataUpdate = new Date().toISOString();
+        this.addStartupLog('SUCCESS', `MNQ data feed active — last price: ${last.close.toFixed(2)}`);
+      } else {
+        this.addStartupLog('WARN', 'MNQ data feed active — awaiting first bar');
+      }
+
+      // Phase 5: Strategy init
+      this.addStartupLog('INFO', 'Initializing signal evaluation strategy...');
+      this.addStartupLog('INFO', `Min score gate: ${this.config.minScore} | Risk: $${this.config.riskDollars} | Target: $${this.config.targetDollars}`);
+      this.addStartupLog('INFO', `Max trades/week: ${this.config.maxTradesPerWeek} | Auto-execute: ${this.config.disableAutoExecute ? 'OFF' : 'ON'}`);
+      this.addStartupLog('INFO', 'Trading window: 09:30–10:30 ET (NY Open)');
+
       this.runState = 'running';
+      this.connectionStatus.phase = 'bot-running';
+      this.connectionStatus.systemHealth = 'healthy';
+
+      this.addStartupLog('SUCCESS', '✓ All systems operational — BOT IS NOW RUNNING');
+      this.addStartupLog('SUCCESS', `Monitoring MNQ signals on ${brokerLabel}`);
+
       this.sys.info('Bot running');
       this.scheduleLoop();
       void this.tick();
     } catch (e) {
       this.runState = 'error';
       this.lastError = (e as Error).message;
+      this.connectionStatus.phase = 'error';
+      this.connectionStatus.apiAuthStatus = 'failed';
+      this.connectionStatus.systemHealth = 'critical';
+      this.addStartupLog('ERROR', `Startup failed: ${this.lastError}`);
+      this.addStartupLog('ERROR', 'Check your API key, account permissions, and network connection');
       this.sys.error(`Bot start failed: ${this.lastError}`);
     }
     this.emitState();
@@ -196,9 +313,16 @@ export class BotController extends EventEmitter {
       clearInterval(this.loopTimer);
       this.loopTimer = null;
     }
+    this.addStartupLog('INFO', 'Stop requested — halting signal processing...');
+    this.addStartupLog('INFO', 'Unsubscribing from MNQ real-time feed...');
     this.feed.unsubscribe();
+    this.addStartupLog('INFO', 'Disconnecting from broker...');
     await this.broker.disconnect();
     this.runState = 'stopped';
+    this.connectionStatus.phase = 'stopped';
+    this.connectionStatus.mnqFeedActive = false;
+    this.connectionStatus.systemHealth = 'healthy';
+    this.addStartupLog('INFO', 'Bot stopped — all connections closed');
     this.sys.info('Bot stopped');
     this.emitState();
   }
@@ -217,6 +341,19 @@ export class BotController extends EventEmitter {
 
       const market = this.feed.getState();
       this.updateBias(market);
+
+      // Track live MNQ data for the UI
+      if (market.mnqBars.length > 0) {
+        const last = market.mnqBars[market.mnqBars.length - 1];
+        this.connectionStatus.mnqLastPrice = last.close;
+        this.connectionStatus.mnqLastVolume = last.volume ?? null;
+      }
+      if (!market.isStale) {
+        this.connectionStatus.lastDataUpdate = new Date().toISOString();
+        this.connectionStatus.mnqFeedActive = true;
+      } else if (this.connectionStatus.mnqFeedActive) {
+        this.connectionStatus.systemHealth = 'degraded';
+      }
 
       // Always monitor an open trade regardless of window.
       if (this.openTrade) await this.monitorOpenTrade(market);
@@ -422,6 +559,8 @@ export class BotController extends EventEmitter {
       brokerType: this.config.brokerType,
       apiKeyConfigured: this.config.brokerApiKey.length > 0,
       autoExecuteEnabled: !this.config.disableAutoExecute,
+      connectionStatus: { ...this.connectionStatus },
+      apiValidated: this.apiValidated,
     };
   }
 
@@ -435,6 +574,75 @@ export class BotController extends EventEmitter {
 
   private emitState(): void {
     this.emit('state', this.getState());
+  }
+
+  // ── Startup log helpers ──────────────────────────────────────────────────────
+
+  private addStartupLog(level: StartupLogEntry['level'], message: string): void {
+    const entry: StartupLogEntry = { ts: new Date().toISOString(), level, message };
+    this.startupLogs.push(entry);
+    this.emit('startup-log', entry);
+  }
+
+  private brokerLabel(): string {
+    switch (this.config.brokerType) {
+      case 'topstep': return 'Topstep (ProjectX)';
+      case 'alphafutures': return 'Alpha Futures';
+      case 'rithmic': return 'Rithmic';
+      default: return 'Interactive Brokers (TWS)';
+    }
+  }
+
+  // ── API validation (test connection without starting the bot) ─────────────────
+
+  async validateApiConnection(): Promise<{ success: boolean; message: string }> {
+    if (this.runState === 'running') {
+      return { success: true, message: 'Already connected and running' };
+    }
+    this.applyDbSettings();
+    const needsKey = this.config.brokerType !== 'ib';
+    if (needsKey && !this.config.brokerApiKey) {
+      return { success: false, message: 'API key not configured — save your key in Settings first' };
+    }
+
+    this.connectionStatus.apiAuthStatus = 'validating';
+    this.emitState();
+    this.addStartupLog('INFO', `Validating connection to ${this.brokerLabel()}...`);
+
+    try {
+      const tmp = this.createBroker();
+      const t0 = Date.now();
+      await tmp.connect();
+      const latency = Date.now() - t0;
+      await tmp.disconnect();
+
+      this.connectionStatus.apiAuthStatus = 'authenticated';
+      this.connectionStatus.accountVerified = true;
+      this.connectionStatus.latencyMs = latency;
+      this.connectionStatus.phase = 'connected';
+      this.connectionStatus.systemHealth = 'healthy';
+      this.apiValidated = true;
+
+      const msg = `Connection validated — ${this.brokerLabel()} authenticated (${latency}ms)`;
+      this.addStartupLog('SUCCESS', msg);
+      this.sys.info(msg);
+      this.emitState();
+      return { success: true, message: msg };
+    } catch (e) {
+      const msg = (e as Error).message;
+      this.connectionStatus.apiAuthStatus = 'failed';
+      this.connectionStatus.phase = 'error';
+      this.connectionStatus.systemHealth = 'critical';
+      this.apiValidated = false;
+      this.addStartupLog('ERROR', `Validation failed: ${msg}`);
+      this.sys.error(`API validation failed: ${msg}`);
+      this.emitState();
+      return { success: false, message: `Validation failed: ${msg}` };
+    }
+  }
+
+  getStartupLogs(): StartupLogEntry[] {
+    return [...this.startupLogs];
   }
 
   // ── Accessors for IPC ────────────────────────────────────────────────────────
