@@ -59,6 +59,7 @@ export function registerIpc(controller: BotController): void {
     for (const [key, value] of Object.entries(settings)) {
       db.setSetting(key, value);
     }
+    controller.reloadSettings();
     return { success: true };
   });
 

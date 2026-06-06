@@ -52,7 +52,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BotConfig {
 }
 
 export class BotController extends EventEmitter {
-  private readonly config: BotConfig;
+  private config: BotConfig;
   private readonly db: BotDatabase;
   private readonly sys: SystemLogger;
   private readonly tradeLogger: TradeLogger;
@@ -96,10 +96,40 @@ export class BotController extends EventEmitter {
     this.openTrade = this.db.getOpenTrade();
   }
 
+  // ── Settings ─────────────────────────────────────────────────────────────────
+
+  private applyDbSettings(): void {
+    const s = this.db.getAllSettings();
+    if (s.auto_execute !== undefined) {
+      this.config.disableAutoExecute = s.auto_execute === 'false';
+    }
+    if (s.max_trades_per_week) {
+      this.config.maxTradesPerWeek = Math.max(1, Number(s.max_trades_per_week));
+    }
+    if (s.risk_dollars) {
+      this.config.riskDollars = Math.max(50, Number(s.risk_dollars));
+    }
+    if (s.target_dollars) {
+      this.config.targetDollars = Math.max(100, Number(s.target_dollars));
+    }
+    this.sys.info('Settings applied', {
+      autoExecute: !this.config.disableAutoExecute,
+      riskDollars: this.config.riskDollars,
+      targetDollars: this.config.targetDollars,
+      maxTradesPerWeek: this.config.maxTradesPerWeek,
+    });
+  }
+
+  reloadSettings(): void {
+    this.applyDbSettings();
+    this.emitState();
+  }
+
   // ── Lifecycle ────────────────────────────────────────────────────────────────
 
   async start(): Promise<void> {
     if (this.runState === 'running' || this.runState === 'connecting') return;
+    this.applyDbSettings();
     this.runState = 'connecting';
     this.botEnabled = true;
     this.lastError = null;

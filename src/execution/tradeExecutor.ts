@@ -52,7 +52,7 @@ export class TradeExecutor {
     const { broker, tradeLogger, sys, config } = this.deps;
 
     // 1. Risk model first — needed by the safety checklist.
-    const riskModel: RiskModel = calcRiskModel(signal.entry, signal.sl, signal.direction);
+    const riskModel: RiskModel = calcRiskModel(signal.entry, signal.sl, signal.direction, config.riskDollars, config.targetDollars);
 
     // 2. Safety checklist.
     const ctx: SafetyContext = {
