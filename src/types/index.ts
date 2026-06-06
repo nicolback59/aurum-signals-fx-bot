@@ -14,6 +14,8 @@ export type TradeStatus = 'OPEN' | 'WIN' | 'LOSS' | 'BE' | 'CANCELLED' | 'REJECT
 
 // ── Config (sourced from env vars) ────────────────────────────────────────────
 
+export type BrokerType = 'ib' | 'topstep' | 'rithmic';
+
 export interface BotConfig {
   ibHost: string;
   ibPort: number;
@@ -25,6 +27,8 @@ export interface BotConfig {
   riskDollars: number;
   targetDollars: number;
   disableAutoExecute: boolean;
+  brokerType: BrokerType;
+  brokerApiKey: string;
 }
 
 // ── Risk model ────────────────────────────────────────────────────────────────
@@ -158,6 +162,9 @@ export interface BotState {
   openTrade: BotTrade | null;
   lastError: string | null;
   lastUpdate: string;
+  brokerType: BrokerType;
+  apiKeyConfigured: boolean;
+  autoExecuteEnabled: boolean;
 }
 
 // ── Reporting ─────────────────────────────────────────────────────────────────
