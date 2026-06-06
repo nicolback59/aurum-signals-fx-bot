@@ -33,6 +33,7 @@ export function StatusBar({ state }: { state: BotState | null }): JSX.Element {
   const weekly = state?.weeklyTradeCount ?? 0;
   const max = state?.maxTradesPerWeek ?? 5;
   const pct = Math.min(100, (weekly / max) * 100);
+  const brokerLabel = (state?.brokerType ?? 'ib').toUpperCase();
 
   return (
     <div>
@@ -43,11 +44,31 @@ export function StatusBar({ state }: { state: BotState | null }): JSX.Element {
           {runPill(state?.runState)}
         </div>
         <div className="row">
-          <span className="label">API</span>
+          <span className="label">Broker</span>
+          <span className="pill pill-gold">{brokerLabel}</span>
+        </div>
+        <div className="row">
+          <span className="label">API Key</span>
+          {state?.apiKeyConfigured ? (
+            <span className="pill pill-green">CONFIGURED</span>
+          ) : (
+            <span className="pill pill-red">NOT SET</span>
+          )}
+        </div>
+        <div className="row">
+          <span className="label">Connection</span>
           {state?.apiConnected ? (
             <span className="pill pill-green">CONNECTED</span>
           ) : (
-            <span className="pill pill-red">DISCONNECTED</span>
+            <span className="pill pill-gray">DISCONNECTED</span>
+          )}
+        </div>
+        <div className="row">
+          <span className="label">Auto-Execute</span>
+          {state?.autoExecuteEnabled ? (
+            <span className="pill pill-green">ON</span>
+          ) : (
+            <span className="pill pill-red">OFF</span>
           )}
         </div>
         <div className="row">

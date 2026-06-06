@@ -15,6 +15,8 @@ import {
   isMarketOpen,
 } from './engine/signalEngine';
 import { IBClient } from './broker/ibClient';
+import { TopstepAdapter } from './providers/topstepAdapter';
+import type { IBrokerClient } from './broker/IBrokerClient';
 import { MarketDataFeed } from './broker/marketDataFeed';
 import { TradeExecutor } from './execution/tradeExecutor';
 import { calcPnl, calcPnlR } from './risk/riskEngine';
@@ -48,17 +50,19 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BotConfig {
     riskDollars: Number(env.BOT_RISK_DOLLARS ?? 600),
     targetDollars: Number(env.BOT_TARGET_DOLLARS ?? 2000),
     disableAutoExecute: (env.DISABLE_AUTO_EXECUTE ?? 'false') === 'true',
+    brokerType: 'ib',
+    brokerApiKey: '',
   };
 }
 
 export class BotController extends EventEmitter {
-  private readonly config: BotConfig;
+  private config: BotConfig;
   private readonly db: BotDatabase;
   private readonly sys: SystemLogger;
   private readonly tradeLogger: TradeLogger;
-  private readonly broker: IBClient;
-  private readonly feed: MarketDataFeed;
-  private readonly executor: TradeExecutor;
+  private broker: IBrokerClient;
+  private feed: MarketDataFeed;
+  private executor: TradeExecutor;
 
   private runState: BotState['runState'] = 'stopped';
   private loopTimer: NodeJS.Timeout | null = null;
@@ -96,17 +100,81 @@ export class BotController extends EventEmitter {
     this.openTrade = this.db.getOpenTrade();
   }
 
+  // ── Settings ─────────────────────────────────────────────────────────────────
+
+  private applyDbSettings(): void {
+    const s = this.db.getAllSettings();
+    if (s.auto_execute !== undefined) {
+      this.config.disableAutoExecute = s.auto_execute === 'false';
+    }
+    if (s.max_trades_per_week) {
+      this.config.maxTradesPerWeek = Math.max(1, Number(s.max_trades_per_week));
+    }
+    if (s.risk_dollars) {
+      this.config.riskDollars = Math.max(50, Number(s.risk_dollars));
+    }
+    if (s.target_dollars) {
+      this.config.targetDollars = Math.max(100, Number(s.target_dollars));
+    }
+    if (s.broker_type) {
+      this.config.brokerType = s.broker_type as BotConfig['brokerType'];
+    }
+    if (s.broker_api_key !== undefined) {
+      this.config.brokerApiKey = s.broker_api_key;
+    }
+    this.sys.info('Settings applied', {
+      brokerType: this.config.brokerType,
+      apiKeyConfigured: this.config.brokerApiKey.length > 0,
+      autoExecute: !this.config.disableAutoExecute,
+      riskDollars: this.config.riskDollars,
+      targetDollars: this.config.targetDollars,
+      maxTradesPerWeek: this.config.maxTradesPerWeek,
+    });
+  }
+
+  private createBroker(): IBrokerClient {
+    if (this.config.brokerType === 'topstep' && this.config.brokerApiKey) {
+      this.sys.info('Using Topstep broker');
+      return new TopstepAdapter(this.config.brokerApiKey, this.sys);
+    }
+    this.sys.info('Using Interactive Brokers (TWS)');
+    return new IBClient({
+      host: this.config.ibHost,
+      port: this.config.ibPort,
+      clientId: this.config.ibClientId,
+      account: this.config.ibAccount,
+      logger: this.sys,
+    });
+  }
+
+  reloadSettings(): void {
+    this.applyDbSettings();
+    this.emitState();
+  }
+
   // ── Lifecycle ────────────────────────────────────────────────────────────────
 
   async start(): Promise<void> {
     if (this.runState === 'running' || this.runState === 'connecting') return;
+    this.applyDbSettings();
+
+    // Recreate broker/feed/executor so settings changes take effect on next start
+    this.broker = this.createBroker();
+    this.feed = new MarketDataFeed(this.broker, this.sys);
+    this.executor = new TradeExecutor({
+      broker: this.broker,
+      tradeLogger: this.tradeLogger,
+      sys: this.sys,
+      config: this.config,
+    });
+
     this.runState = 'connecting';
     this.botEnabled = true;
     this.lastError = null;
     this.emitState();
 
     try {
-      this.sys.info('Bot starting — connecting to IB');
+      this.sys.info(`Bot starting — connecting via ${this.config.brokerType}`);
       await this.broker.connect();
       await this.feed.bootstrap();
       this.feed.subscribe();
@@ -351,6 +419,9 @@ export class BotController extends EventEmitter {
       openTrade: this.openTrade,
       lastError: this.lastError,
       lastUpdate: now.toISOString(),
+      brokerType: this.config.brokerType,
+      apiKeyConfigured: this.config.brokerApiKey.length > 0,
+      autoExecuteEnabled: !this.config.disableAutoExecute,
     };
   }
 

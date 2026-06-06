@@ -33,6 +33,8 @@ export function calcRiskModel(
   entry: number,
   stop: number,
   direction: Direction,
+  riskDollars: number = RISK_DOLLARS,
+  targetDollars: number = TARGET_DOLLARS,
 ): RiskModel {
   const stopPoints = Math.abs(entry - stop);
 
@@ -53,7 +55,7 @@ export function calcRiskModel(
   }
 
   const riskPerContract = stopPoints * MNQ_POINT_VALUE;
-  const contracts = Math.floor(RISK_DOLLARS / riskPerContract);
+  const contracts = Math.floor(riskDollars / riskPerContract);
 
   if (contracts < MIN_CONTRACTS) {
     return {
@@ -67,12 +69,12 @@ export function calcRiskModel(
       targetPoints: 0,
       rr: 0,
       valid: false,
-      reason: `STOP_TOO_WIDE: ${stopPoints.toFixed(2)}pts needs >$${RISK_DOLLARS} for 1 contract`,
+      reason: `STOP_TOO_WIDE: ${stopPoints.toFixed(2)}pts needs >$${riskDollars} for 1 contract`,
     };
   }
 
   const actualRisk = contracts * stopPoints * MNQ_POINT_VALUE;
-  const targetPoints = TARGET_DOLLARS / (contracts * MNQ_POINT_VALUE);
+  const targetPoints = targetDollars / (contracts * MNQ_POINT_VALUE);
   const target =
     direction === 'LONG' ? entry + targetPoints : entry - targetPoints;
   const rr = targetPoints / stopPoints;
@@ -83,7 +85,7 @@ export function calcRiskModel(
     target,
     contracts,
     riskDollars: actualRisk,
-    targetDollars: TARGET_DOLLARS,
+    targetDollars,
     stopPoints,
     targetPoints,
     rr,
