@@ -14,6 +14,7 @@ import type {
   BacktestResult,
   BacktestPeriod,
   SystemLogEntry,
+  StartupLogEntry,
 } from '../types';
 
 const IPC = {
@@ -21,6 +22,9 @@ const IPC = {
   BOT_STOP: 'bot:stop',
   BOT_STATE: 'bot:state',
   BOT_GET_STATE: 'bot:get-state',
+  BOT_VALIDATE_API: 'bot:validate-api',
+  BOT_GET_STARTUP_LOGS: 'bot:get-startup-logs',
+  BOT_STARTUP_LOG: 'bot:startup-log',
   TRADE_EXECUTED: 'bot:trade-executed',
   SIGNAL_EVALUATED: 'bot:signal-evaluated',
   BACKTEST_RUN: 'backtest:run',
@@ -37,6 +41,8 @@ export interface AurumApi {
   startBot(): Promise<BotState>;
   stopBot(): Promise<BotState>;
   getState(): Promise<BotState>;
+  validateApi(): Promise<{ success: boolean; message: string }>;
+  getStartupLogs(): Promise<StartupLogEntry[]>;
   listTrades(): Promise<BotTrade[]>;
   listLogs(): Promise<SystemLogEntry[]>;
   weeklyReport(): Promise<WeeklyStats>;
@@ -48,12 +54,15 @@ export interface AurumApi {
   onState(cb: (state: BotState) => void): () => void;
   onTradeExecuted(cb: (trade: BotTrade) => void): () => void;
   onSignalEvaluated(cb: (sig: SignalSnapshot) => void): () => void;
+  onStartupLog(cb: (entry: StartupLogEntry) => void): () => void;
 }
 
 const api: AurumApi = {
   startBot: () => ipcRenderer.invoke(IPC.BOT_START),
   stopBot: () => ipcRenderer.invoke(IPC.BOT_STOP),
   getState: () => ipcRenderer.invoke(IPC.BOT_GET_STATE),
+  validateApi: () => ipcRenderer.invoke(IPC.BOT_VALIDATE_API),
+  getStartupLogs: () => ipcRenderer.invoke(IPC.BOT_GET_STARTUP_LOGS),
   listTrades: () => ipcRenderer.invoke(IPC.TRADES_LIST),
   listLogs: () => ipcRenderer.invoke(IPC.LOGS_LIST),
   weeklyReport: () => ipcRenderer.invoke(IPC.REPORT_WEEKLY),
@@ -76,6 +85,11 @@ const api: AurumApi = {
     const handler = (_e: unknown, sig: SignalSnapshot): void => cb(sig);
     ipcRenderer.on(IPC.SIGNAL_EVALUATED, handler);
     return () => ipcRenderer.removeListener(IPC.SIGNAL_EVALUATED, handler);
+  },
+  onStartupLog: (cb) => {
+    const handler = (_e: unknown, entry: StartupLogEntry): void => cb(entry);
+    ipcRenderer.on(IPC.BOT_STARTUP_LOG, handler);
+    return () => ipcRenderer.removeListener(IPC.BOT_STARTUP_LOG, handler);
   },
 };
 

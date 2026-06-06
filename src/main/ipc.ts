@@ -16,6 +16,9 @@ export const IPC = {
   BOT_STOP: 'bot:stop',
   BOT_STATE: 'bot:state',
   BOT_GET_STATE: 'bot:get-state',
+  BOT_VALIDATE_API: 'bot:validate-api',
+  BOT_GET_STARTUP_LOGS: 'bot:get-startup-logs',
+  BOT_STARTUP_LOG: 'bot:startup-log',
   TRADE_EXECUTED: 'bot:trade-executed',
   SIGNAL_EVALUATED: 'bot:signal-evaluated',
   BACKTEST_RUN: 'backtest:run',
@@ -63,6 +66,12 @@ export function registerIpc(controller: BotController): void {
     return { success: true };
   });
 
+  ipcMain.handle(IPC.BOT_VALIDATE_API, async () => {
+    return controller.validateApiConnection();
+  });
+
+  ipcMain.handle(IPC.BOT_GET_STARTUP_LOGS, () => controller.getStartupLogs());
+
   ipcMain.handle(IPC.REPORT_WEEKLY, () => weeklyReport(controller.getDb()));
 
   ipcMain.handle(IPC.REPORT_DAILY, () => dailyReport(controller.getDb()));
@@ -89,4 +98,5 @@ export function registerIpc(controller: BotController): void {
   controller.on('state', (state) => broadcast(IPC.BOT_STATE, state));
   controller.on('trade-executed', (trade) => broadcast(IPC.TRADE_EXECUTED, trade));
   controller.on('signal-evaluated', (sig) => broadcast(IPC.SIGNAL_EVALUATED, sig));
+  controller.on('startup-log', (entry) => broadcast(IPC.BOT_STARTUP_LOG, entry));
 }

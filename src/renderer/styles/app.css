@@ -499,3 +499,458 @@ tr:hover td {
   color: var(--green);
   font-size: 13px;
 }
+
+/* ── Control Center ─────────────────────────────────────────────────────────── */
+
+.control-center {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Control card ── */
+
+.cc-controls-card {
+  border: 1px solid var(--border);
+}
+
+.cc-controls-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.cc-controls-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+/* Prominent Start/Stop buttons */
+.cc-btn-start {
+  background: var(--green);
+  color: #062b12;
+  border-color: var(--green);
+  font-size: 14px;
+  padding: 10px 28px;
+  letter-spacing: 1.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+}
+.cc-btn-start:hover:not(:disabled) {
+  background: #00e060;
+  border-color: #00e060;
+}
+.cc-btn-start-disabled {
+  background: rgba(0, 200, 83, 0.2) !important;
+  color: rgba(0, 200, 83, 0.5) !important;
+  border-color: rgba(0, 200, 83, 0.2) !important;
+  cursor: not-allowed !important;
+}
+
+.cc-btn-stop {
+  background: rgba(255, 61, 0, 0.15);
+  color: var(--red);
+  border-color: var(--red);
+  font-size: 14px;
+  padding: 10px 28px;
+  letter-spacing: 1.5px;
+  font-weight: 800;
+}
+.cc-btn-stop:hover:not(:disabled) {
+  background: var(--red);
+  color: #2b0600;
+}
+.cc-btn-stop:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.cc-btn-running {
+  background: rgba(0, 200, 83, 0.1);
+  color: var(--green);
+  border: 1px solid var(--green);
+  font-size: 14px;
+  padding: 10px 28px;
+  letter-spacing: 1.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: default;
+}
+
+.cc-btn-validate {
+  background: rgba(245, 166, 35, 0.1);
+  color: var(--gold);
+  border-color: var(--gold);
+  font-size: 13px;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cc-btn-validate:hover:not(:disabled) {
+  background: rgba(245, 166, 35, 0.25);
+}
+.cc-btn-validate-disabled {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+}
+
+/* ── Validate area ── */
+
+.cc-validate-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cc-validate-hint {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.cc-hint-warn {
+  color: var(--yellow);
+}
+
+/* ── Active indicator ── */
+
+.cc-active-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cc-active-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse-green 1.5s ease-in-out infinite;
+  display: inline-block;
+}
+
+.cc-active-label {
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* ── Phase indicator ── */
+
+.cc-phase-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.cc-phase-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cc-phase-dot-green  { background: var(--green); }
+.cc-phase-dot-yellow { background: var(--yellow); }
+.cc-phase-dot-red    { background: var(--red); }
+.cc-phase-dot-gray   { background: var(--muted); }
+.cc-phase-dot-gold   { background: var(--gold); }
+
+.cc-phase-dot-pulse {
+  animation: pulse-generic 1.5s ease-in-out infinite;
+}
+
+.cc-phase-label {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text);
+}
+
+/* ── Setup/info banners ── */
+
+.cc-setup-banner {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: rgba(245, 166, 35, 0.08);
+  border: 1px solid rgba(245, 166, 35, 0.25);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--yellow);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cc-setup-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.cc-error-banner {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: rgba(255, 61, 0, 0.08);
+  border: 1px solid rgba(255, 61, 0, 0.3);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--red);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cc-error-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* ── Status badge system ── */
+
+.cc-status-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+
+.cc-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cc-badge-green  { background: rgba(0,200,83,0.12);   color: var(--green);  border: 1px solid rgba(0,200,83,0.25); }
+.cc-badge-green  .cc-badge-dot { background: var(--green); }
+
+.cc-badge-red    { background: rgba(255,61,0,0.12);   color: var(--red);    border: 1px solid rgba(255,61,0,0.25); }
+.cc-badge-red    .cc-badge-dot { background: var(--red); }
+
+.cc-badge-yellow { background: rgba(255,213,79,0.12); color: var(--yellow); border: 1px solid rgba(255,213,79,0.25); }
+.cc-badge-yellow .cc-badge-dot { background: var(--yellow); }
+
+.cc-badge-gray   { background: rgba(138,138,138,0.12); color: var(--muted); border: 1px solid rgba(138,138,138,0.2); }
+.cc-badge-gray   .cc-badge-dot { background: var(--muted); }
+
+.cc-badge-gold   { background: rgba(245,166,35,0.12); color: var(--gold);   border: 1px solid rgba(245,166,35,0.25); }
+.cc-badge-gold   .cc-badge-dot { background: var(--gold); }
+
+.cc-badge-pulse .cc-badge-dot {
+  animation: pulse-generic 1.5s ease-in-out infinite;
+}
+
+/* ── Connection & Data Feed table ── */
+
+.cc-conn-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.cc-conn-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px solid #1e1e1e;
+}
+
+.cc-conn-row:last-child {
+  border-bottom: none;
+}
+
+.cc-conn-row-highlight {
+  background: rgba(0, 200, 83, 0.03);
+  border-radius: 4px;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.cc-conn-label {
+  color: var(--muted);
+  font-size: 12px;
+  flex: 1;
+}
+
+.cc-conn-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: right;
+}
+
+/* ── Startup log console ── */
+
+.cc-log-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.cc-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+}
+
+.cc-log-header h3 {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+}
+
+.cc-log-count {
+  font-size: 11px;
+  color: var(--muted);
+  background: rgba(138,138,138,0.1);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.cc-log-console {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 12px;
+  background: #0a0a0a;
+  border-top: 1px solid var(--border);
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.cc-log-empty {
+  padding: 20px 16px;
+  color: var(--muted);
+  text-align: center;
+  font-style: italic;
+}
+
+.cc-log-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 14px;
+  border-bottom: 1px solid #111;
+}
+
+.cc-log-line:last-child {
+  border-bottom: none;
+}
+
+.cc-log-ts {
+  color: #555;
+  white-space: nowrap;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.cc-log-level-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  min-width: 52px;
+  text-align: center;
+  padding: 1px 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.cc-log-level-INFO    { background: rgba(138,138,138,0.15); color: var(--muted); }
+.cc-log-level-SUCCESS { background: rgba(0,200,83,0.15);    color: var(--green); }
+.cc-log-level-WARN    { background: rgba(255,213,79,0.15);  color: var(--yellow); }
+.cc-log-level-ERROR   { background: rgba(255,61,0,0.15);    color: var(--red); }
+
+.cc-log-msg {
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.cc-log-SUCCESS .cc-log-msg { color: var(--green); }
+.cc-log-WARN    .cc-log-msg { color: var(--yellow); }
+.cc-log-ERROR   .cc-log-msg { color: var(--red); }
+
+/* ── Buttons for the bot-running state in header ── */
+
+.btn-running-sm {
+  background: rgba(0, 200, 83, 0.1);
+  color: var(--green);
+  border: 1px solid var(--green);
+  cursor: default;
+}
+
+/* ── Tab live dot ── */
+
+.tab-live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  margin-left: 6px;
+  vertical-align: middle;
+  animation: pulse-green 1.5s ease-in-out infinite;
+}
+
+/* ── Button dot indicators ── */
+
+.cc-btn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.cc-btn-dot-green  { background: var(--green); }
+.cc-btn-dot-yellow { background: var(--yellow); }
+
+.cc-btn-dot-pulse {
+  animation: pulse-generic 1s ease-in-out infinite;
+}
+
+/* ── Spinner ── */
+
+.cc-spin {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(245,166,35,0.3);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ── Animations ── */
+
+@keyframes pulse-green {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,200,83,0.4); }
+  50%       { opacity: 0.8; box-shadow: 0 0 0 5px rgba(0,200,83,0); }
+}
+
+@keyframes pulse-generic {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

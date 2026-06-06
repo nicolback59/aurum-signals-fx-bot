@@ -10,11 +10,43 @@ import type {
 
 export type BotRunState = 'running' | 'stopped' | 'error' | 'connecting';
 
+export type ConnectionPhase =
+  | 'disconnected'
+  | 'connecting'
+  | 'authenticating'
+  | 'connected'
+  | 'data-feed-active'
+  | 'bot-running'
+  | 'stopped'
+  | 'warning'
+  | 'error';
+
+export type ApiAuthStatus = 'unconfigured' | 'validating' | 'authenticated' | 'failed';
+
+export interface ConnectionStatus {
+  phase: ConnectionPhase;
+  apiAuthStatus: ApiAuthStatus;
+  accountVerified: boolean;
+  mnqFeedActive: boolean;
+  lastDataUpdate: string | null;
+  latencyMs: number | null;
+  reconnectAttempts: number;
+  systemHealth: 'healthy' | 'degraded' | 'critical';
+  mnqLastPrice: number | null;
+  mnqLastVolume: number | null;
+}
+
+export interface StartupLogEntry {
+  ts: string;
+  level: 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS';
+  message: string;
+}
+
 export type TradeStatus = 'OPEN' | 'WIN' | 'LOSS' | 'BE' | 'CANCELLED' | 'REJECTED';
 
 // ── Config (sourced from env vars) ────────────────────────────────────────────
 
-export type BrokerType = 'ib' | 'topstep' | 'rithmic';
+export type BrokerType = 'ib' | 'topstep' | 'alphafutures' | 'rithmic';
 
 export interface BotConfig {
   ibHost: string;
@@ -165,6 +197,8 @@ export interface BotState {
   brokerType: BrokerType;
   apiKeyConfigured: boolean;
   autoExecuteEnabled: boolean;
+  connectionStatus: ConnectionStatus;
+  apiValidated: boolean;
 }
 
 // ── Reporting ─────────────────────────────────────────────────────────────────

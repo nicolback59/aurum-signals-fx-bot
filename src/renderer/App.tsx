@@ -1,19 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { StatusBar } from './components/StatusBar';
-import { Dashboard } from './components/Dashboard';
+import { ControlCenter } from './components/ControlCenter';
 import { TradeHistory } from './components/TradeHistory';
 import { BacktestPanel } from './components/BacktestPanel';
 import { WeeklyReport } from './components/WeeklyReport';
 import { ErrorLog } from './components/ErrorLog';
 import { LoginScreen } from './components/LoginScreen';
 import { SettingsPanel } from './components/SettingsPanel';
-import type { BotState } from '../types';
+import type { BotState, StartupLogEntry } from '../types';
 
 type Tab = 'live' | 'trades' | 'backtest' | 'reports' | 'logs' | 'settings';
 
 const TABS: Array<{ id: Tab; label: string }> = [
-  { id: 'live', label: 'Live' },
+  { id: 'live', label: 'Control Center' },
   { id: 'trades', label: 'Trades' },
   { id: 'backtest', label: 'Backtest' },
   { id: 'reports', label: 'Reports' },
@@ -26,16 +25,23 @@ export function App(): JSX.Element {
   const [state, setState] = useState<BotState | null>(null);
   const [tab, setTab] = useState<Tab>('live');
   const [busy, setBusy] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [startupLogs, setStartupLogs] = useState<StartupLogEntry[]>([]);
 
   useEffect(() => {
     if (!loggedIn) return;
     void window.aurum.getState().then(setState);
-    const off = window.aurum.onState(setState);
-    return off;
+    void window.aurum.getStartupLogs().then(setStartupLogs);
+    const offState = window.aurum.onState(setState);
+    const offLog = window.aurum.onStartupLog((entry) =>
+      setStartupLogs((prev) => [...prev, entry]),
+    );
+    return () => { offState(); offLog(); };
   }, [loggedIn]);
 
   const start = useCallback(async () => {
     setBusy(true);
+    setStartupLogs([]);
     setState(await window.aurum.startBot());
     setBusy(false);
   }, []);
@@ -46,9 +52,18 @@ export function App(): JSX.Element {
     setBusy(false);
   }, []);
 
+  const validate = useCallback(async () => {
+    setValidating(true);
+    await window.aurum.validateApi();
+    const updated = await window.aurum.getState();
+    setState(updated);
+    setValidating(false);
+  }, []);
+
   const logout = useCallback(() => {
     setLoggedIn(false);
     setState(null);
+    setStartupLogs([]);
     setTab('live');
   }, []);
 
@@ -56,7 +71,15 @@ export function App(): JSX.Element {
     return <LoginScreen onLogin={() => setLoggedIn(true)} />;
   }
 
-  const running = state?.runState === 'running' || state?.runState === 'connecting';
+  const running = state?.runState === 'running';
+  const connecting = state?.runState === 'connecting';
+  const brokerType = state?.brokerType ?? 'topstep';
+  const needsApiKey = brokerType !== 'ib';
+  const canStart =
+    !running &&
+    !connecting &&
+    !busy &&
+    (!needsApiKey || (state?.apiKeyConfigured && state?.apiValidated));
 
   return (
     <div className="app">
@@ -67,14 +90,27 @@ export function App(): JSX.Element {
         </div>
         <div className="header-actions">
           {running ? (
-            <button className="btn btn-stop" onClick={stop} disabled={busy}>
-              STOP BOT
+            <button className="btn btn-running-sm" disabled>
+              BOT RUNNING
             </button>
           ) : (
-            <button className="btn btn-start" onClick={start} disabled={busy}>
-              START BOT
+            <button
+              className="btn btn-start"
+              onClick={start}
+              disabled={!canStart}
+              title={!canStart && needsApiKey && !state?.apiValidated ? 'Validate API key first in Control Center' : undefined}
+            >
+              {connecting ? 'CONNECTING…' : busy ? 'STARTING…' : 'START BOT'}
             </button>
           )}
+          <button
+            className="btn btn-stop"
+            onClick={stop}
+            disabled={!running || busy}
+            style={{ marginLeft: 0 }}
+          >
+            STOP BOT
+          </button>
           <button className="btn" onClick={logout} style={{ marginLeft: 8 }}>
             Log Out
           </button>
@@ -82,11 +118,7 @@ export function App(): JSX.Element {
       </header>
 
       <div className="body">
-        <aside className="sidebar">
-          <StatusBar state={state} />
-        </aside>
-
-        <main className="main">
+        <main className="main" style={{ width: '100%' }}>
           <nav className="tabs">
             {TABS.map((t) => (
               <div
@@ -95,12 +127,25 @@ export function App(): JSX.Element {
                 onClick={() => setTab(t.id)}
               >
                 {t.label}
+                {t.id === 'live' && running && (
+                  <span className="tab-live-dot" />
+                )}
               </div>
             ))}
           </nav>
 
           <section className="content">
-            {tab === 'live' && <Dashboard state={state} />}
+            {tab === 'live' && (
+              <ControlCenter
+                state={state}
+                busy={busy}
+                validating={validating}
+                startupLogs={startupLogs}
+                onStart={start}
+                onStop={stop}
+                onValidate={validate}
+              />
+            )}
             {tab === 'trades' && <TradeHistory />}
             {tab === 'backtest' && <BacktestPanel />}
             {tab === 'reports' && <WeeklyReport />}
