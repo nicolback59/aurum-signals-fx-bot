@@ -91,11 +91,10 @@ export class BotController extends EventEmitter {
   private apiValidated = false;
   private startupLogs: StartupLogEntry[] = [];
 
-  constructor(config: BotConfig, dbPath?: string) {
+  constructor(config: BotConfig, db: BotDatabase) {
     super();
     this.config = config;
-    const resolvedDbPath = dbPath ?? path.join(os.homedir(), '.aurum-fx-bot', 'bot.db');
-    this.db = new BotDatabase(resolvedDbPath);
+    this.db = db;
     this.db.initDefaultUser();
     this.sys = new SystemLogger(this.db);
     this.tradeLogger = new TradeLogger(this.db, this.sys);
@@ -115,6 +114,13 @@ export class BotController extends EventEmitter {
     });
 
     this.openTrade = this.db.getOpenTrade();
+  }
+
+  /** Async factory — opens the database then constructs the controller. */
+  static async create(config: BotConfig, dbPath?: string): Promise<BotController> {
+    const resolvedDbPath = dbPath ?? path.join(os.homedir(), '.aurum-fx-bot', 'bot.db');
+    const db = await BotDatabase.open(resolvedDbPath);
+    return new BotController(config, db);
   }
 
   // ── Settings ─────────────────────────────────────────────────────────────────

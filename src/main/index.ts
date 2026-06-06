@@ -15,9 +15,9 @@ dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 let controller: BotController | null = null;
 
-function bootstrap(): void {
+async function bootstrap(): Promise<void> {
   const config = loadConfig(process.env);
-  controller = new BotController(config);
+  controller = await BotController.create(config);
   registerIpc(controller);
   createMainWindow();
 }

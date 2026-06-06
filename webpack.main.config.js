@@ -16,7 +16,7 @@ module.exports = {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.json'],
   },
   externals: {
-    'better-sqlite3': 'commonjs better-sqlite3',
+    'sql.js': 'commonjs sql.js',
     '@stoqey/ib': 'commonjs @stoqey/ib',
   },
 };
