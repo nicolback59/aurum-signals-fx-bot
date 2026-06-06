@@ -28,6 +28,9 @@ const IPC = {
   REPORT_WEEKLY: 'report:weekly',
   REPORT_DAILY: 'report:daily',
   LOGS_LIST: 'logs:list',
+  AUTH_LOGIN: 'auth:login',
+  SETTINGS_GET: 'settings:get',
+  SETTINGS_SAVE: 'settings:save',
 } as const;
 
 export interface AurumApi {
@@ -39,6 +42,9 @@ export interface AurumApi {
   weeklyReport(): Promise<WeeklyStats>;
   dailyReport(): Promise<DailyStats>;
   runBacktest(period: BacktestPeriod): Promise<BacktestResult>;
+  login(username: string, passwordHash: string): Promise<{ success: boolean }>;
+  getSettings(): Promise<Record<string, string>>;
+  saveSettings(settings: Record<string, string>): Promise<{ success: boolean }>;
   onState(cb: (state: BotState) => void): () => void;
   onTradeExecuted(cb: (trade: BotTrade) => void): () => void;
   onSignalEvaluated(cb: (sig: SignalSnapshot) => void): () => void;
@@ -53,6 +59,9 @@ const api: AurumApi = {
   weeklyReport: () => ipcRenderer.invoke(IPC.REPORT_WEEKLY),
   dailyReport: () => ipcRenderer.invoke(IPC.REPORT_DAILY),
   runBacktest: (period) => ipcRenderer.invoke(IPC.BACKTEST_RUN, { period }),
+  login: (username, passwordHash) => ipcRenderer.invoke(IPC.AUTH_LOGIN, { username, passwordHash }),
+  getSettings: () => ipcRenderer.invoke(IPC.SETTINGS_GET),
+  saveSettings: (settings) => ipcRenderer.invoke(IPC.SETTINGS_SAVE, settings),
   onState: (cb) => {
     const handler = (_e: unknown, state: BotState): void => cb(state);
     ipcRenderer.on(IPC.BOT_STATE, handler);

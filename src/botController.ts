@@ -75,6 +75,7 @@ export class BotController extends EventEmitter {
     this.config = config;
     const resolvedDbPath = dbPath ?? path.join(os.homedir(), '.aurum-fx-bot', 'bot.db');
     this.db = new BotDatabase(resolvedDbPath);
+    this.db.initDefaultUser();
     this.sys = new SystemLogger(this.db);
     this.tradeLogger = new TradeLogger(this.db, this.sys);
     this.broker = new IBClient({

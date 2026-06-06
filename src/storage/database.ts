@@ -17,6 +17,14 @@ import type {
 } from '../types';
 
 const SCHEMA = `
+CREATE TABLE IF NOT EXISTS users (
+  username TEXT PRIMARY KEY,
+  password_hash TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS trades (
   id TEXT PRIMARY KEY,
   opened_at TEXT,
@@ -334,6 +342,46 @@ export class BotDatabase {
       orderId: null,
       signal: JSON.parse(r.signal_json) as BotTrade['signal'],
     };
+  }
+
+  // ── Auth ─────────────────────────────────────────────────────────────────────
+
+  initDefaultUser(): void {
+    const exists = this.db.prepare(`SELECT 1 FROM users WHERE username='admin'`).get();
+    if (!exists) {
+      // Default: admin / admin (SHA-256 hex of "admin")
+      const hash = 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3';
+      this.db.prepare(`INSERT INTO users (username, password_hash) VALUES ('admin', ?)`).run(hash);
+    }
+  }
+
+  verifyUser(username: string, passwordHash: string): boolean {
+    const row = this.db
+      .prepare(`SELECT password_hash FROM users WHERE username=?`)
+      .get(username) as { password_hash: string } | undefined;
+    return row?.password_hash === passwordHash;
+  }
+
+  // ── Settings ─────────────────────────────────────────────────────────────────
+
+  getSetting(key: string): string | null {
+    const row = this.db
+      .prepare(`SELECT value FROM settings WHERE key=?`)
+      .get(key) as { value: string } | undefined;
+    return row?.value ?? null;
+  }
+
+  setSetting(key: string, value: string): void {
+    this.db
+      .prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?,?)`)
+      .run(key, value);
+  }
+
+  getAllSettings(): Record<string, string> {
+    const rows = this.db
+      .prepare(`SELECT key, value FROM settings`)
+      .all() as Array<{ key: string; value: string }>;
+    return Object.fromEntries(rows.map((r) => [r.key, r.value]));
   }
 
   close(): void {
