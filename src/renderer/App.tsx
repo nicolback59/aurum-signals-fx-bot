@@ -2,19 +2,17 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ControlCenter } from './components/ControlCenter';
 import { TradeHistory } from './components/TradeHistory';
-import { BacktestPanel } from './components/BacktestPanel';
 import { WeeklyReport } from './components/WeeklyReport';
 import { ErrorLog } from './components/ErrorLog';
 import { LoginScreen } from './components/LoginScreen';
 import { SettingsPanel } from './components/SettingsPanel';
 import type { BotState, StartupLogEntry } from '../types';
 
-type Tab = 'live' | 'trades' | 'backtest' | 'reports' | 'logs' | 'settings';
+type Tab = 'live' | 'trades' | 'reports' | 'logs' | 'settings';
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'live', label: 'Control Center' },
   { id: 'trades', label: 'Trades' },
-  { id: 'backtest', label: 'Backtest' },
   { id: 'reports', label: 'Reports' },
   { id: 'logs', label: 'Logs' },
   { id: 'settings', label: 'Settings' },
@@ -75,11 +73,14 @@ export function App(): JSX.Element {
   const connecting = state?.runState === 'connecting';
   const brokerType = state?.brokerType ?? 'topstep';
   const needsApiKey = brokerType !== 'ib';
+  const marketOpen = state?.marketOpen ?? false;
   const canStart =
     !running &&
     !connecting &&
     !busy &&
+    marketOpen &&
     (!needsApiKey || (state?.apiKeyConfigured && state?.apiValidated));
+  const canStop = state?.runState !== 'stopped' && !busy;
 
   return (
     <div className="app">
@@ -106,7 +107,7 @@ export function App(): JSX.Element {
           <button
             className="btn btn-stop"
             onClick={stop}
-            disabled={!running || busy}
+            disabled={!canStop}
             style={{ marginLeft: 0 }}
           >
             STOP BOT
@@ -147,7 +148,6 @@ export function App(): JSX.Element {
               />
             )}
             {tab === 'trades' && <TradeHistory />}
-            {tab === 'backtest' && <BacktestPanel />}
             {tab === 'reports' && <WeeklyReport />}
             {tab === 'logs' && <ErrorLog />}
             {tab === 'settings' && <SettingsPanel />}
