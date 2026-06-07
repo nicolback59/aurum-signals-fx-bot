@@ -1,4 +1,5 @@
 module.exports = {
+  devtool: false,
   entry: './src/main/index.ts',
   module: {
     rules: [
