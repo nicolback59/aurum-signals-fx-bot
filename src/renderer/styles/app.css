@@ -35,9 +35,27 @@ body,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 22px;
+  padding: 10px 22px;
   background: #111;
   border-bottom: 1px solid var(--border);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.header-logo-wrap {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+.header-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
 }
 
 .header h1 {
@@ -52,6 +70,31 @@ body,
   color: var(--muted);
   font-size: 12px;
   letter-spacing: 1px;
+}
+
+/* ── Mode badge ─────────────────────────────────────────────────────────────── */
+
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+}
+
+.mode-badge-eval {
+  background: rgba(255, 213, 79, 0.12);
+  color: var(--yellow);
+  border: 1px solid rgba(255, 213, 79, 0.3);
+}
+
+.mode-badge-funded {
+  background: rgba(0, 200, 83, 0.12);
+  color: var(--green);
+  border: 1px solid rgba(0, 200, 83, 0.3);
 }
 
 .header-actions {
@@ -342,7 +385,15 @@ tr:hover td {
 
 .login-logo {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
+}
+
+.login-logo-img {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 12px;
 }
 
 .login-logo-text {
@@ -359,6 +410,23 @@ tr:hover td {
   letter-spacing: 2px;
   color: var(--muted);
   margin-top: 4px;
+}
+
+.login-footer {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.login-footer-link {
+  color: var(--gold);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.input-error {
+  border-color: var(--red) !important;
 }
 
 .login-form {
@@ -498,6 +566,68 @@ tr:hover td {
 .settings-saved {
   color: var(--green);
   font-size: 13px;
+}
+
+/* ── Mode toggle buttons (Settings) ────────────────────────────────────────── */
+
+.mode-toggle-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.mode-btn {
+  background: #111;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 12px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.15s;
+}
+
+.mode-btn:hover:not(:disabled) {
+  border-color: var(--gold);
+}
+
+.mode-btn-icon {
+  font-size: 20px;
+}
+
+.mode-btn-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.3px;
+}
+
+.mode-btn-desc {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.mode-btn-active-eval {
+  border-color: var(--yellow);
+  background: rgba(255, 213, 79, 0.06);
+}
+
+.mode-btn-active-eval .mode-btn-label {
+  color: var(--yellow);
+}
+
+.mode-btn-active-funded {
+  border-color: var(--green);
+  background: rgba(0, 200, 83, 0.06);
+}
+
+.mode-btn-active-funded .mode-btn-label {
+  color: var(--green);
 }
 
 /* ── Control Center ─────────────────────────────────────────────────────────── */

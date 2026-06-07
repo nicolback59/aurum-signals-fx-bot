@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aurum Signals FX Bot — Download</title>
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --card: #1a1a1a;
+      --border: #2a2a2a;
+      --gold: #f5a623;
+      --gold2: #d4891e;
+      --green: #00c853;
+      --text: #e8e8e8;
+      --muted: #8a8a8a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Nav ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 60px;
+      border-bottom: 1px solid var(--border);
+      background: #111;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .nav-logo {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+    }
+
+    .nav-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      color: var(--gold);
+    }
+
+    .nav-sub {
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: color 0.15s;
+    }
+
+    .nav-links a:hover { color: var(--gold); }
+
+    /* ── Hero ── */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 100px 24px 80px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .hero-logo {
+      width: 140px;
+      height: 140px;
+      object-fit: contain;
+      margin-bottom: 32px;
+      filter: drop-shadow(0 0 40px rgba(245, 166, 35, 0.3));
+    }
+
+    .hero h1 {
+      font-size: 52px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      color: var(--gold);
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+
+    .hero-sub {
+      font-size: 18px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+    }
+
+    .hero-desc {
+      font-size: 16px;
+      color: #aaa;
+      max-width: 600px;
+      line-height: 1.7;
+      margin-bottom: 48px;
+    }
+
+    /* ── Download buttons ── */
+    .download-buttons {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .dl-btn {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 32px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.5px;
+      border: 2px solid;
+      transition: all 0.2s;
+      min-width: 240px;
+    }
+
+    .dl-btn-windows {
+      background: rgba(0, 120, 215, 0.12);
+      border-color: rgba(0, 120, 215, 0.5);
+      color: #5bb4ff;
+    }
+
+    .dl-btn-windows:hover {
+      background: rgba(0, 120, 215, 0.22);
+      border-color: #0078d7;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0, 120, 215, 0.2);
+    }
+
+    .dl-btn-mac {
+      background: rgba(245, 166, 35, 0.1);
+      border-color: rgba(245, 166, 35, 0.4);
+      color: var(--gold);
+    }
+
+    .dl-btn-mac:hover {
+      background: rgba(245, 166, 35, 0.2);
+      border-color: var(--gold);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(245, 166, 35, 0.2);
+    }
+
+    .dl-btn-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+
+    .dl-btn-text {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .dl-btn-label {
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0.7;
+      letter-spacing: 0.5px;
+    }
+
+    .dl-btn-name {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .dl-version {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 16px;
+    }
+
+    /* ── Features ── */
+    .features {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+
+    .features h2 {
+      text-align: center;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--gold);
+      margin-bottom: 48px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .feature-icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .feature-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── How it works ── */
+    .how {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    .how h2 {
+      text-align: center;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--gold);
+      margin-bottom: 40px;
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .step {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(245, 166, 35, 0.15);
+      border: 1px solid rgba(245, 166, 35, 0.4);
+      color: var(--gold);
+      font-weight: 800;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-body h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .step-body p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── CTA ── */
+    .cta {
+      background: linear-gradient(135deg, rgba(245, 166, 35, 0.08), rgba(245, 166, 35, 0.02));
+      border-top: 1px solid rgba(245, 166, 35, 0.15);
+      border-bottom: 1px solid rgba(245, 166, 35, 0.15);
+      padding: 80px 24px;
+      text-align: center;
+    }
+
+    .cta h2 {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: var(--gold);
+      margin-bottom: 12px;
+    }
+
+    .cta p {
+      font-size: 16px;
+      color: var(--muted);
+      margin-bottom: 40px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      padding: 32px 60px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    footer .brand {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--gold);
+    }
+
+    footer .copy {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    footer .disclaimer {
+      font-size: 11px;
+      color: #555;
+      max-width: 600px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 640px) {
+      nav { padding: 14px 20px; }
+      .hero h1 { font-size: 32px; }
+      .dl-btn { min-width: 200px; }
+      footer { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <div class="nav-brand">
+      <img src="assets/logo.png" alt="Aurum FX Bot" class="nav-logo" onerror="this.style.display='none'" />
+      <div>
+        <div class="nav-title">AURUM</div>
+        <div class="nav-sub">SIGNALS FX BOT</div>
+      </div>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how">How It Works</a></li>
+      <li><a href="#download">Download</a></li>
+    </ul>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <img src="assets/logo.png" alt="Aurum FX Bot Logo" class="hero-logo" onerror="this.style.display='none'" />
+    <h1>AURUM FX BOT</h1>
+    <p class="hero-sub">Automated MNQ Futures Execution — NY Open</p>
+    <p class="hero-desc">
+      A professional-grade desktop trading bot built for MNQ futures. Runs live only while your computer is on,
+      with encrypted API key storage, Evaluation &amp; Funded account modes, and institutional-quality risk controls.
+    </p>
+    <div class="download-buttons" id="download">
+      <a href="releases/AurumSignalsFXBotSetup.exe" class="dl-btn dl-btn-windows" download>
+        <span class="dl-btn-icon">🪟</span>
+        <span class="dl-btn-text">
+          <span class="dl-btn-label">Download for</span>
+          <span class="dl-btn-name">Windows (.exe)</span>
+        </span>
+      </a>
+      <a href="releases/AurumSignalsFXBot.dmg" class="dl-btn dl-btn-mac" download>
+        <span class="dl-btn-icon"></span>
+        <span class="dl-btn-text">
+          <span class="dl-btn-label">Download for</span>
+          <span class="dl-btn-name">macOS (.dmg)</span>
+        </span>
+      </a>
+    </div>
+    <p class="dl-version">v1.0.0 · Windows 10/11 · macOS 12+ · Requires broker API key</p>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <h2>FEATURES</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🖥️</div>
+        <div class="feature-title">Desktop-Only Execution</div>
+        <div class="feature-desc">The bot runs exclusively while the desktop app is open and your computer is on — no cloud servers, no background processes when you're offline.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔐</div>
+        <div class="feature-title">Encrypted API Key Storage</div>
+        <div class="feature-desc">Your broker API key is encrypted using your OS keychain (Electron safeStorage) — never stored in plaintext on disk.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧪</div>
+        <div class="feature-title">Evaluation Mode</div>
+        <div class="feature-desc">Conservative limits designed to protect prop firm evaluation accounts — daily loss guard, max 1 trade per day, strict score threshold.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💰</div>
+        <div class="feature-title">Funded Account Mode</div>
+        <div class="feature-desc">Full execution engine on your live funded account with configurable risk per trade, weekly limits, and auto-execute controls.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">MNQ NY Open Strategy</div>
+        <div class="feature-desc">Trades MNQ futures during the 09:30–10:30 ET window with EMA trend, VWAP, ES breadth confirmation, and ATR-based bracket orders.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📋</div>
+        <div class="feature-title">Live Logs &amp; Reports</div>
+        <div class="feature-desc">Real-time startup logs, signal evaluation feed, trade history, daily &amp; weekly P&amp;L reports — all inside the app.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <div class="feature-title">14-Point Safety Checklist</div>
+        <div class="feature-desc">Every trade passes 14 pre-execution safety checks including connection stability, ATR floor, ADX floor, and duplicate-signal cooldowns.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔑</div>
+        <div class="feature-title">License-Gated Login</div>
+        <div class="feature-desc">Access requires a valid Aurum license key. Credentials and license are verified locally — no external auth servers required.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="how" id="how">
+    <h2>HOW IT WORKS</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Download &amp; Install</h3>
+          <p>Download the installer for your platform (Windows .exe or macOS .dmg) and run it. The app installs like any other desktop application.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Enter Your License Key</h3>
+          <p>On first launch, enter your Aurum license key (format: AURUM-XXXX-XXXX-XXXX) along with your username and password.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Configure Broker &amp; Mode</h3>
+          <p>In Settings, select your broker (Topstep, Tradovate, or Interactive Brokers), paste your API key (stored encrypted), and choose Evaluation or Funded account mode.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>Start the Bot</h3>
+          <p>Click START BOT in the Control Center. The bot connects to your broker, subscribes to market data, and begins scanning for MNQ NY Open setups from 09:30–10:30 ET.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h3>Bot Runs While App Is Open</h3>
+          <p>Trading only occurs while the desktop app is open and your computer is running. Close the app and the bot stops immediately — no background execution.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <h2>READY TO TRADE?</h2>
+    <p>Download Aurum Signals FX Bot and automate your MNQ NY Open strategy today.</p>
+    <div class="download-buttons">
+      <a href="releases/AurumSignalsFXBotSetup.exe" class="dl-btn dl-btn-windows" download>
+        <span class="dl-btn-icon">🪟</span>
+        <span class="dl-btn-text">
+          <span class="dl-btn-label">Download for</span>
+          <span class="dl-btn-name">Windows (.exe)</span>
+        </span>
+      </a>
+      <a href="releases/AurumSignalsFXBot.dmg" class="dl-btn dl-btn-mac" download>
+        <span class="dl-btn-icon"></span>
+        <span class="dl-btn-text">
+          <span class="dl-btn-label">Download for</span>
+          <span class="dl-btn-name">macOS (.dmg)</span>
+        </span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div>
+      <div class="brand">AURUM SIGNALS FX BOT</div>
+      <div class="copy">&copy; 2026 Aurum Signals. All rights reserved.</div>
+    </div>
+    <div class="disclaimer">
+      Trading futures involves substantial risk of loss and is not suitable for all investors.
+      Past performance is not indicative of future results. Aurum Signals FX Bot is a tool,
+      not financial advice. Trade responsibly.
+    </div>
+  </footer>
+
+</body>
+</html>

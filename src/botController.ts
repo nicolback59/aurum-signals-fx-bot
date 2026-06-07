@@ -8,6 +8,15 @@ import { EventEmitter } from 'node:events';
 import path from 'node:path';
 import os from 'node:os';
 
+// safeStorage is only available in the main process; guard for backtest/test contexts
+let _safeStorage: typeof import('electron').safeStorage | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  _safeStorage = (require('electron') as typeof import('electron')).safeStorage;
+} catch {
+  // not running in Electron
+}
+
 import {
   evaluateForBot,
   isInBotTradingWindow,
@@ -56,6 +65,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BotConfig {
     disableAutoExecute: (env.DISABLE_AUTO_EXECUTE ?? 'false') === 'true',
     brokerType: 'ib',
     brokerApiKey: '',
+    accountMode: 'evaluation',
   };
 }
 
@@ -152,12 +162,26 @@ export class BotController extends EventEmitter {
     if (s.broker_type) {
       this.config.brokerType = s.broker_type as BotConfig['brokerType'];
     }
-    if (s.broker_api_key !== undefined) {
-      if (this.config.brokerApiKey !== s.broker_api_key) {
+    // Prefer encrypted key; fall back to plaintext for migration
+    const encKey = s.broker_api_key_enc;
+    const plainKey = s.broker_api_key;
+    let resolvedKey = plainKey ?? '';
+    if (encKey && _safeStorage?.isEncryptionAvailable()) {
+      try {
+        resolvedKey = _safeStorage.decryptString(Buffer.from(encKey, 'base64'));
+      } catch {
+        resolvedKey = plainKey ?? '';
+      }
+    }
+    if (resolvedKey !== undefined) {
+      if (this.config.brokerApiKey !== resolvedKey) {
         this.apiValidated = false;
         this.connectionStatus.apiAuthStatus = 'unconfigured';
       }
-      this.config.brokerApiKey = s.broker_api_key;
+      this.config.brokerApiKey = resolvedKey;
+    }
+    if (s.account_mode) {
+      this.config.accountMode = s.account_mode as BotConfig['accountMode'];
     }
     this.sys.info('Settings applied', {
       brokerType: this.config.brokerType,
@@ -599,6 +623,8 @@ export class BotController extends EventEmitter {
       autoExecuteEnabled: !this.config.disableAutoExecute,
       connectionStatus: { ...this.connectionStatus },
       apiValidated: this.apiValidated,
+      accountMode: this.config.accountMode,
+      licenseValid: true,
     };
   }
 

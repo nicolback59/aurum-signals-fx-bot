@@ -6,6 +6,10 @@ import type {
   OHLCV,
 } from '../engine/signalEngine';
 
+// ── Account / trading mode ────────────────────────────────────────────────────
+
+export type AccountMode = 'evaluation' | 'funded';
+
 // ── Bot lifecycle state ───────────────────────────────────────────────────────
 
 export type BotRunState = 'running' | 'stopped' | 'error' | 'connecting';
@@ -62,6 +66,7 @@ export interface BotConfig {
   disableAutoExecute: boolean;
   brokerType: BrokerType;
   brokerApiKey: string;
+  accountMode: AccountMode;
 }
 
 // ── Risk model ────────────────────────────────────────────────────────────────
@@ -205,6 +210,8 @@ export interface BotState {
   autoExecuteEnabled: boolean;
   connectionStatus: ConnectionStatus;
   apiValidated: boolean;
+  accountMode: AccountMode;
+  licenseValid: boolean;
 }
 
 // ── Reporting ─────────────────────────────────────────────────────────────────
