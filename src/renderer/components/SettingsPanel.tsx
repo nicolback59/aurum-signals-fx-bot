@@ -70,9 +70,9 @@ export function SettingsPanel(): JSX.Element {
               onClick={() => setSettings((p) => ({ ...p, account_mode: 'evaluation' }))}
               disabled={busy}
             >
-              <span className="mode-btn-icon">🧪</span>
+              <span className="mode-btn-icon">🚀</span>
               <span className="mode-btn-label">Evaluation Mode</span>
-              <span className="mode-btn-desc">Prop firm evaluation account — conservative limits apply</span>
+              <span className="mode-btn-desc">Full execution — attack the profit target fast to pass in days</span>
             </button>
             <button
               type="button"
@@ -80,15 +80,15 @@ export function SettingsPanel(): JSX.Element {
               onClick={() => setSettings((p) => ({ ...p, account_mode: 'funded' }))}
               disabled={busy}
             >
-              <span className="mode-btn-icon">💰</span>
+              <span className="mode-btn-icon">🛡️</span>
               <span className="mode-btn-label">Funded Account Mode</span>
-              <span className="mode-btn-desc">Live funded account — full execution active</span>
+              <span className="mode-btn-desc">Conservative — protect the account, minimize drawdown, secure the payout</span>
             </button>
           </div>
           <span className="settings-hint" style={{ marginTop: 8, display: 'block' }}>
             {settings.account_mode === 'evaluation'
-              ? 'Evaluation mode enforces stricter daily loss limits to protect your evaluation.'
-              : 'Funded mode runs the full execution engine on your live funded account.'}
+              ? 'Evaluation mode runs full execution with higher trade frequency to hit the profit target quickly.'
+              : 'Funded mode applies tighter risk controls and fewer trades per week to protect your payout.'}
           </span>
         </section>
 
