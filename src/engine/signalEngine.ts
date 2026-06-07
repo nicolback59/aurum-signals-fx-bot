@@ -13,15 +13,15 @@ import {
   evaluate,
   getEtHhmm,
   DEFAULT_LEARNING_WEIGHTS,
-} from '../../../engine/signal_engine';
+} from './signal_engine';
 
 import type {
   EvaluationParams,
   EvaluationResult,
   Signal,
-} from '../../../engine/signal_engine';
+} from './signal_engine';
 
-export * from '../../../engine/signal_engine';
+export * from './signal_engine';
 
 // ── Bot overrides ─────────────────────────────────────────────────────────────
 
