@@ -37,7 +37,7 @@ import type {
   StartupLogEntry,
 } from './types';
 
-const LOOP_INTERVAL_MS = 30_000;
+const LOOP_INTERVAL_MS = 5_000;
 const FINGERPRINT_TTL_MS = 60 * 60 * 1000;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): BotConfig {

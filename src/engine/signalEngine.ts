@@ -111,23 +111,22 @@ export function getEtHhmm(ts: Date): number {
   return (isNaN(hh) ? 0 : hh) * 100 + (isNaN(mm) ? 0 : mm);
 }
 
-export function isMarketOpen(ts: Date): boolean {
-  const etStr = ts.toLocaleString('en-US', {
-    timeZone: 'America/New_York',
-    weekday: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-  const parts = etStr.split(', ');
-  if (parts.length < 2) return false;
-  const day = parts[0];
-  const [hh, mm] = parts[1].split(':').map(Number);
-  const hhmm = (isNaN(hh) ? 0 : hh) * 100 + (isNaN(mm) ? 0 : mm);
-  if (day === 'Sat') return false;
-  if (day === 'Sun') return hhmm >= 1800;
-  if (day === 'Fri') return hhmm < 1700;
-  return hhmm < 1700 || hhmm >= 1800;
+function getEtDay(ts: Date): string {
+  return ts.toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'short' });
+}
+
+function isWeekday(ts: Date): boolean {
+  const day = getEtDay(ts);
+  return day !== 'Sat' && day !== 'Sun';
+}
+
+export function isMarketOpen(ts: Date): { open: boolean } {
+  if (!isWeekday(ts)) return { open: false };
+  const hhmm = getEtHhmm(ts);
+  const day = getEtDay(ts);
+  // Regular session: 09:30–16:00 ET Mon–Fri (Fri closes at 16:00)
+  if (day === 'Fri') return { open: hhmm >= 930 && hhmm < 1600 };
+  return { open: hhmm >= 930 && hhmm < 1600 };
 }
 
 // ── Technical indicators ──────────────────────────────────────────────────────
@@ -341,6 +340,7 @@ export const BOT_TRADING_WINDOW_START_ET_HHMM = 930;
 export const BOT_TRADING_WINDOW_END_ET_HHMM = 1030;
 
 export function isInBotTradingWindow(ts: Date): boolean {
+  if (!isWeekday(ts)) return false;
   const hhmm = getEtHhmm(ts);
   return hhmm >= BOT_TRADING_WINDOW_START_ET_HHMM && hhmm < BOT_TRADING_WINDOW_END_ET_HHMM;
 }
@@ -349,7 +349,8 @@ export function msUntilNextWindow(ts: Date): number {
   if (isInBotTradingWindow(ts)) return 0;
   const probe = new Date(ts.getTime());
   probe.setSeconds(0, 0);
-  for (let i = 0; i < 8 * 24 * 60; i++) {
+  // Search up to 5 days ahead (covers any weekend gap)
+  for (let i = 0; i < 5 * 24 * 60; i++) {
     probe.setMinutes(probe.getMinutes() + 1);
     if (isInBotTradingWindow(probe)) return probe.getTime() - ts.getTime();
   }
