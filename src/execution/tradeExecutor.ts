@@ -30,6 +30,8 @@ export interface ExecutorDeps {
 
 export interface ExecutionEnv {
   botEnabled: boolean;
+  connectionStable: boolean;
+  dailyTradeCount: number;
   weeklyTradeCount: number;
   hasOpenTrade: boolean;
   marketDataAgeMs: number;
@@ -58,7 +60,10 @@ export class TradeExecutor {
     const ctx: SafetyContext = {
       botEnabled: env.botEnabled,
       apiConnected: broker.isConnected(),
+      connectionStable: env.connectionStable,
       now: env.now,
+      dailyTradeCount: env.dailyTradeCount,
+      maxTradesPerDay: config.maxTradesPerDay,
       weeklyTradeCount: env.weeklyTradeCount,
       maxTradesPerWeek: config.maxTradesPerWeek,
       score: signal.score,
@@ -67,8 +72,8 @@ export class TradeExecutor {
       riskModel,
       marketDataAgeMs: env.marketDataAgeMs,
       hasOpenTrade: env.hasOpenTrade,
-      atr: signal.indicators.atr,
-      adx: signal.indicators.adx,
+      atr: signal.atr,
+      adx: signal.adx,
       fingerprint: signal.fingerprint,
       recentFingerprints: env.recentFingerprints,
     };

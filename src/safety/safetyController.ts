@@ -43,17 +43,40 @@ export function runChecklist(ctx: SafetyContext): SafetyResult {
     ),
   );
 
-  // 3. Within NY Open window (6:30–7:30 AM PT)
+  // 3. Connection stable (no drops or reconnects during this session)
+  checks.push(
+    check(
+      'CONNECTION_STABLE',
+      ctx.connectionStable,
+      ctx.connectionStable
+        ? 'Connection is stable'
+        : 'Connection unstable — restart bot to reset',
+    ),
+  );
+
+  // 4. Within NY Open window (09:30–10:30 ET)
   const inWindow = isInBotTradingWindow(ctx.now);
   checks.push(
     check(
       'TRADING_WINDOW',
       inWindow,
-      inWindow ? 'Inside NY Open window' : 'Outside NY Open window (6:30-7:30 AM PT)',
+      inWindow ? 'Inside NY Open window' : 'Outside NY Open window (09:30-10:30 ET)',
     ),
   );
 
-  // 4. Under weekly trade limit
+  // 5. Daily trade lockout — max 1 trade per day
+  const underDailyLimit = ctx.dailyTradeCount < ctx.maxTradesPerDay;
+  checks.push(
+    check(
+      'DAILY_LIMIT',
+      underDailyLimit,
+      underDailyLimit
+        ? `Daily trades ${ctx.dailyTradeCount}/${ctx.maxTradesPerDay}`
+        : `Daily limit reached — ${ctx.dailyTradeCount}/${ctx.maxTradesPerDay} trades today`,
+    ),
+  );
+
+  // 6. Under weekly trade limit
   const underLimit = ctx.weeklyTradeCount < ctx.maxTradesPerWeek;
   checks.push(
     check(
@@ -65,7 +88,7 @@ export function runChecklist(ctx: SafetyContext): SafetyResult {
     ),
   );
 
-  // 5. Score >= minScore (80)
+  // 7. Score >= minScore (80)
   const scoreOk = ctx.score >= ctx.minScore;
   checks.push(
     check(
@@ -77,7 +100,7 @@ export function runChecklist(ctx: SafetyContext): SafetyResult {
     ),
   );
 
-  // 6. ES confirms
+  // 8. ES confirms
   checks.push(
     check(
       'ES_CONFIRMED',
@@ -86,7 +109,7 @@ export function runChecklist(ctx: SafetyContext): SafetyResult {
     ),
   );
 
-  // 7. Risk model valid (>= 1 contract at $600 risk)
+  // 9. Risk model valid (>= 1 contract at $600 risk)
   const riskValid = ctx.riskModel != null && ctx.riskModel.valid && ctx.riskModel.contracts >= 1;
   checks.push(
     check(
@@ -98,7 +121,7 @@ export function runChecklist(ctx: SafetyContext): SafetyResult {
     ),
   );
 
-  // 8. Market data fresh (< 30s old)
+  // 10. Market data fresh (< 30s old)
   const dataFresh = ctx.marketDataAgeMs >= 0 && ctx.marketDataAgeMs < MARKET_DATA_MAX_AGE_MS;
   checks.push(
     check(
@@ -110,7 +133,7 @@ export function runChecklist(ctx: SafetyContext): SafetyResult {
     ),
   );
 
-  // 9. No active open trade (one at a time)
+  // 11. No active open trade (one at a time)
   checks.push(
     check(
       'NO_OPEN_TRADE',
@@ -119,7 +142,7 @@ export function runChecklist(ctx: SafetyContext): SafetyResult {
     ),
   );
 
-  // 10. ATR > 18
+  // 12. ATR > 18
   const atrOk = ctx.atr > ATR_MIN;
   checks.push(
     check(
@@ -129,7 +152,7 @@ export function runChecklist(ctx: SafetyContext): SafetyResult {
     ),
   );
 
-  // 11. ADX > 16
+  // 13. ADX > 16
   const adxOk = ctx.adx > ADX_MIN;
   checks.push(
     check(
@@ -139,7 +162,7 @@ export function runChecklist(ctx: SafetyContext): SafetyResult {
     ),
   );
 
-  // 12. No duplicate signal (fingerprint check, 15-min cooldown)
+  // 14. No duplicate signal (fingerprint check, 15-min cooldown)
   const nowMs = ctx.now.getTime();
   const duplicate = ctx.recentFingerprints.some(
     (f) => f.fingerprint === ctx.fingerprint && nowMs - f.ts < DUPLICATE_COOLDOWN_MS,

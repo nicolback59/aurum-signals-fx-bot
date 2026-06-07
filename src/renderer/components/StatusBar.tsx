@@ -30,6 +30,8 @@ function runPill(s: BotState['runState'] | undefined): JSX.Element {
 }
 
 export function StatusBar({ state }: { state: BotState | null }): JSX.Element {
+  const daily = state?.dailyTradeCount ?? 0;
+  const maxDay = state?.maxTradesPerDay ?? 1;
   const weekly = state?.weeklyTradeCount ?? 0;
   const max = state?.maxTradesPerWeek ?? 5;
   const pct = Math.min(100, (weekly / max) * 100);
@@ -93,6 +95,24 @@ export function StatusBar({ state }: { state: BotState | null }): JSX.Element {
             <span className="pill pill-yellow">{fmtCountdown(state?.nextWindowMs ?? null)}</span>
           </div>
         )}
+      </div>
+
+      <div className="card">
+        <h3>Today's Trades</h3>
+        <div className="row">
+          <span className="label">Used</span>
+          <strong style={{ color: daily >= maxDay ? 'var(--neg)' : undefined }}>
+            {daily}/{maxDay}
+          </strong>
+        </div>
+        <div className="row">
+          <span className="label">Status</span>
+          {daily >= maxDay ? (
+            <span className="pill pill-red">LOCKED OUT</span>
+          ) : (
+            <span className="pill pill-green">AVAILABLE</span>
+          )}
+        </div>
       </div>
 
       <div className="card">
