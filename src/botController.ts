@@ -16,6 +16,7 @@ import {
 } from './engine/signalEngine';
 import { IBClient } from './broker/ibClient';
 import { TopstepAdapter } from './providers/topstepAdapter';
+import { TradovateAdapter } from './providers/tradovateAdapter';
 import type { IBrokerClient } from './broker/IBrokerClient';
 import { MarketDataFeed } from './broker/marketDataFeed';
 import { TradeExecutor } from './execution/tradeExecutor';
@@ -160,13 +161,13 @@ export class BotController extends EventEmitter {
   }
 
   private createBroker(): IBrokerClient {
-    if (
-      (this.config.brokerType === 'topstep' || this.config.brokerType === 'alphafutures') &&
-      this.config.brokerApiKey
-    ) {
-      const label = this.config.brokerType === 'alphafutures' ? 'Alpha Futures' : 'Topstep';
-      this.sys.info(`Using ${label} broker`);
+    if (this.config.brokerType === 'topstep' && this.config.brokerApiKey) {
+      this.sys.info('Using Topstep (ProjectX) broker');
       return new TopstepAdapter(this.config.brokerApiKey, this.sys);
+    }
+    if (this.config.brokerType === 'tradovate' && this.config.brokerApiKey) {
+      this.sys.info('Using Tradovate broker');
+      return new TradovateAdapter(this.config.brokerApiKey, this.sys);
     }
     this.sys.info('Using Interactive Brokers (TWS)');
     return new IBClient({
@@ -593,7 +594,7 @@ export class BotController extends EventEmitter {
   private brokerLabel(): string {
     switch (this.config.brokerType) {
       case 'topstep': return 'Topstep (ProjectX)';
-      case 'alphafutures': return 'Alpha Futures';
+      case 'tradovate': return 'Tradovate';
       case 'rithmic': return 'Rithmic';
       default: return 'Interactive Brokers (TWS)';
     }

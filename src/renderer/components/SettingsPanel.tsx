@@ -64,7 +64,7 @@ export function SettingsPanel(): JSX.Element {
             <label>Broker Type</label>
             <select value={settings.broker_type} onChange={set('broker_type')} disabled={busy}>
               <option value="topstep">Topstep (ProjectX)</option>
-              <option value="alphafutures">Alpha Futures</option>
+              <option value="tradovate">Tradovate</option>
               <option value="ib">Interactive Brokers (TWS)</option>
               <option value="rithmic">Rithmic</option>
             </select>

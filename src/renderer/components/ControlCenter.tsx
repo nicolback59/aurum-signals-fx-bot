@@ -79,7 +79,7 @@ function fmtCountdown(ms: number | null): string {
 function brokerDisplayName(t: string | undefined): string {
   switch (t) {
     case 'topstep': return 'Topstep (ProjectX)';
-    case 'alphafutures': return 'Alpha Futures';
+    case 'tradovate': return 'Tradovate';
     case 'rithmic': return 'Rithmic';
     case 'ib': return 'Interactive Brokers';
     default: return 'Not Configured';
@@ -388,7 +388,7 @@ function BrokerConfigCard({
               style={{ background: '#1a1a2e', color: '#e0e0e0', border: '1px solid #333', borderRadius: 4, padding: '4px 8px' }}
             >
               <option value="topstep">Topstep (ProjectX)</option>
-              <option value="alphafutures">Alpha Futures</option>
+              <option value="tradovate">Tradovate</option>
               <option value="ib">Interactive Brokers (TWS)</option>
               <option value="rithmic">Rithmic</option>
             </select>
