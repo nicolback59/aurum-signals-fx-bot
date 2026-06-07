@@ -19,9 +19,9 @@
     "outDir": "./dist",
     "baseUrl": ".",
     "paths": {
-      "@engine/*": ["../engine/*"]
+      "@engine/*": ["src/engine/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "../engine/signal_engine.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules", "dist", ".webpack"]
 }
