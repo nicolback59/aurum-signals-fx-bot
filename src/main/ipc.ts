@@ -3,7 +3,7 @@
  * boundary. All channel names are namespaced and mirror the preload API.
  */
 
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain, BrowserWindow, safeStorage } from 'electron';
 
 import { runBacktest } from '../backtest/backtestEngine';
 import { weeklyReport } from '../reporting/weeklyReport';
@@ -55,12 +55,27 @@ export function registerIpc(controller: BotController): void {
     return { success: ok };
   });
 
-  ipcMain.handle(IPC.SETTINGS_GET, () => controller.getDb().getAllSettings());
+  ipcMain.handle(IPC.SETTINGS_GET, () => {
+    const all = controller.getDb().getAllSettings();
+    // Return a masked placeholder when an encrypted key exists, so the renderer
+    // shows the field as configured without leaking the raw key.
+    if (all.broker_api_key_enc) {
+      all.broker_api_key = '••••••••••••••••';
+    }
+    return all;
+  });
 
   ipcMain.handle(IPC.SETTINGS_SAVE, (_e, settings: Record<string, string>) => {
     const db = controller.getDb();
     for (const [key, value] of Object.entries(settings)) {
-      db.setSetting(key, value);
+      if (key === 'broker_api_key' && value && safeStorage.isEncryptionAvailable()) {
+        // Store API key encrypted; persist the base64-encoded ciphertext
+        const encrypted = safeStorage.encryptString(value);
+        db.setSetting('broker_api_key_enc', encrypted.toString('base64'));
+        db.setSetting(key, '');
+      } else {
+        db.setSetting(key, value);
+      }
     }
     controller.reloadSettings();
     return { success: true };

@@ -7,6 +7,7 @@ interface Settings {
   risk_dollars: string;
   target_dollars: string;
   max_trades_per_week: string;
+  account_mode: string;
 }
 
 const DEFAULTS: Settings = {
@@ -16,6 +17,7 @@ const DEFAULTS: Settings = {
   risk_dollars: '600',
   target_dollars: '2000',
   max_trades_per_week: '5',
+  account_mode: 'evaluation',
 };
 
 export function SettingsPanel(): JSX.Element {
@@ -33,6 +35,7 @@ export function SettingsPanel(): JSX.Element {
         risk_dollars: s.risk_dollars ?? '600',
         target_dollars: s.target_dollars ?? '2000',
         max_trades_per_week: s.max_trades_per_week ?? '5',
+        account_mode: s.account_mode ?? 'evaluation',
       });
     });
   }, []);
@@ -57,6 +60,37 @@ export function SettingsPanel(): JSX.Element {
     <div className="settings-panel">
       <h2 className="settings-title">Settings</h2>
       <form onSubmit={handleSave} className="settings-form">
+
+        <section className="settings-section settings-section-mode">
+          <h3>Account Mode</h3>
+          <div className="mode-toggle-row">
+            <button
+              type="button"
+              className={`mode-btn ${settings.account_mode === 'evaluation' ? 'mode-btn-active-eval' : ''}`}
+              onClick={() => setSettings((p) => ({ ...p, account_mode: 'evaluation' }))}
+              disabled={busy}
+            >
+              <span className="mode-btn-icon">🧪</span>
+              <span className="mode-btn-label">Evaluation Mode</span>
+              <span className="mode-btn-desc">Prop firm evaluation account — conservative limits apply</span>
+            </button>
+            <button
+              type="button"
+              className={`mode-btn ${settings.account_mode === 'funded' ? 'mode-btn-active-funded' : ''}`}
+              onClick={() => setSettings((p) => ({ ...p, account_mode: 'funded' }))}
+              disabled={busy}
+            >
+              <span className="mode-btn-icon">💰</span>
+              <span className="mode-btn-label">Funded Account Mode</span>
+              <span className="mode-btn-desc">Live funded account — full execution active</span>
+            </button>
+          </div>
+          <span className="settings-hint" style={{ marginTop: 8, display: 'block' }}>
+            {settings.account_mode === 'evaluation'
+              ? 'Evaluation mode enforces stricter daily loss limits to protect your evaluation.'
+              : 'Funded mode runs the full execution engine on your live funded account.'}
+          </span>
+        </section>
 
         <section className="settings-section">
           <h3>Broker Connection</h3>
@@ -90,7 +124,10 @@ export function SettingsPanel(): JSX.Element {
               </button>
             </div>
             <span className="settings-hint">
-              This key is stored locally and used to authenticate trade orders automatically.
+              Your API key is encrypted at rest using your OS keychain (Electron safeStorage).
+              {settings.broker_api_key === '••••••••••••••••' && (
+                <span style={{ color: 'var(--green)', marginLeft: 6 }}>Key is saved &amp; encrypted.</span>
+              )}
             </span>
           </div>
         </section>

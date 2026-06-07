@@ -71,6 +71,7 @@ export function App(): JSX.Element {
 
   const running = state?.runState === 'running';
   const connecting = state?.runState === 'connecting';
+  const accountMode = state?.accountMode ?? 'evaluation';
   const brokerType = state?.brokerType ?? 'topstep';
   const needsApiKey = brokerType !== 'ib';
   const marketOpen = state?.marketOpen ?? false;
@@ -85,11 +86,19 @@ export function App(): JSX.Element {
   return (
     <div className="app">
       <header className="header">
-        <div>
-          <h1>AURUM SIGNALS FX BOT</h1>
-          <div className="sub">Automated MNQ Futures Execution — NY Open</div>
+        <div className="header-brand">
+          <div className="header-logo-wrap">
+            <img src="assets/logo.png" alt="Aurum FX Bot" className="header-logo" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          </div>
+          <div>
+            <h1>AURUM SIGNALS FX BOT</h1>
+            <div className="sub">Automated MNQ Futures Execution — NY Open</div>
+          </div>
         </div>
         <div className="header-actions">
+          <span className={`mode-badge ${accountMode === 'funded' ? 'mode-badge-funded' : 'mode-badge-eval'}`}>
+            {accountMode === 'funded' ? '💰 FUNDED' : '🧪 EVALUATION'}
+          </span>
           {running ? (
             <button className="btn btn-running-sm" disabled>
               BOT RUNNING
