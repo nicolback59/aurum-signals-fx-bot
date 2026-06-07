@@ -23,7 +23,7 @@ import { calcPnl, calcPnlR } from './risk/riskEngine';
 import { BotDatabase } from './storage/database';
 import { SystemLogger } from './logging/systemLogger';
 import { TradeLogger } from './logging/tradeLogger';
-import { currentWeekStartIso } from './reporting/weeklyReport';
+import { currentWeekStartIso, currentDayStartIso } from './reporting/weeklyReport';
 
 import type { OHLCV, Signal } from './engine/signalEngine';
 import type {
@@ -48,6 +48,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BotConfig {
     ibAccount: env.IB_ACCOUNT ?? '',
     paperTrading: (env.PAPER_TRADING ?? 'true') === 'true',
     minScore: Number(env.BOT_MIN_SCORE ?? 80),
+    maxTradesPerDay: Number(env.BOT_MAX_TRADES_PER_DAY ?? 1),
     maxTradesPerWeek: Number(env.BOT_MAX_TRADES_PER_WEEK ?? 5),
     riskDollars: Number(env.BOT_RISK_DOLLARS ?? 600),
     targetDollars: Number(env.BOT_TARGET_DOLLARS ?? 2000),
@@ -73,6 +74,11 @@ export class BotController extends EventEmitter {
   private lastSignal: SignalSnapshot | null = null;
   private openTrade: BotTrade | null = null;
   private bias: BotState['bias'] = { esBias: 'NEUTRAL', mnqBias: 'NEUTRAL' };
+
+  // Set to true if the broker connection drops during a running session.
+  // Requires bot restart to clear — prevents trading on a recovered-but-suspect feed.
+  private connectionEverDropped = false;
+  private prevBrokerConnected = false;
 
   private readonly recentFingerprints: Array<{ fingerprint: string; ts: number }> = [];
 
@@ -129,6 +135,9 @@ export class BotController extends EventEmitter {
     const s = this.db.getAllSettings();
     if (s.auto_execute !== undefined) {
       this.config.disableAutoExecute = s.auto_execute === 'false';
+    }
+    if (s.max_trades_per_day) {
+      this.config.maxTradesPerDay = Math.max(1, Number(s.max_trades_per_day));
     }
     if (s.max_trades_per_week) {
       this.config.maxTradesPerWeek = Math.max(1, Number(s.max_trades_per_week));
@@ -219,6 +228,8 @@ export class BotController extends EventEmitter {
     this.runState = 'connecting';
     this.botEnabled = true;
     this.lastError = null;
+    this.connectionEverDropped = false;
+    this.prevBrokerConnected = false;
     this.connectionStatus.phase = 'connecting';
     this.connectionStatus.systemHealth = 'healthy';
     this.connectionStatus.mnqFeedActive = false;
@@ -348,6 +359,16 @@ export class BotController extends EventEmitter {
       const market = this.feed.getState();
       this.updateBias(market);
 
+      // Detect connection drops — once dropped, flag persists until bot restarts.
+      const nowConnected = this.broker.isConnected();
+      if (this.prevBrokerConnected && !nowConnected) {
+        this.connectionEverDropped = true;
+        this.connectionStatus.systemHealth = 'critical';
+        this.connectionStatus.reconnectAttempts += 1;
+        this.sys.warn('Broker connection lost during active session — trading locked until restart');
+      }
+      this.prevBrokerConnected = nowConnected;
+
       // Track live MNQ data for the UI
       if (market.mnqBars.length > 0) {
         const last = market.mnqBars[market.mnqBars.length - 1];
@@ -413,9 +434,13 @@ export class BotController extends EventEmitter {
 
     const signal = result.signal;
     const weeklyCount = this.weeklyTradeCount();
+    const dailyCount = this.dailyTradeCount();
+    const connectionStable = !this.connectionEverDropped && this.broker.isConnected();
 
     const exec = await this.executor.executeTrade(signal, market, {
       botEnabled: this.botEnabled,
+      connectionStable,
+      dailyTradeCount: dailyCount,
       weeklyTradeCount: weeklyCount,
       hasOpenTrade: this.openTrade != null,
       marketDataAgeMs: this.feed.ageMs(),
@@ -468,6 +493,10 @@ export class BotController extends EventEmitter {
 
   private weeklyTradeCount(): number {
     return this.db.countTradesSince(currentWeekStartIso());
+  }
+
+  private dailyTradeCount(): number {
+    return this.db.countTradesSince(currentDayStartIso());
   }
 
   private pruneFingerprints(): void {
@@ -555,6 +584,8 @@ export class BotController extends EventEmitter {
       marketOpen: market.open,
       inTradingWindow: inWindow,
       nextWindowMs: nextWindow,
+      dailyTradeCount: this.safeDailyCount(),
+      maxTradesPerDay: this.config.maxTradesPerDay,
       weeklyTradeCount: this.safeWeeklyCount(),
       maxTradesPerWeek: this.config.maxTradesPerWeek,
       bias: this.bias,
@@ -573,6 +604,14 @@ export class BotController extends EventEmitter {
   private safeWeeklyCount(): number {
     try {
       return this.weeklyTradeCount();
+    } catch {
+      return 0;
+    }
+  }
+
+  private safeDailyCount(): number {
+    try {
+      return this.dailyTradeCount();
     } catch {
       return 0;
     }

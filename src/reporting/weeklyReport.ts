@@ -21,3 +21,8 @@ export function weeklyReport(db: BotDatabase, ref: Date = new Date()): WeeklySta
 export function currentWeekStartIso(ref: Date = new Date()): string {
   return DateTime.fromJSDate(ref, { zone: ZONE }).startOf('week').toUTC().toISO()!;
 }
+
+/** ISO start of the current ET day — used for the daily trade-count limit. */
+export function currentDayStartIso(ref: Date = new Date()): string {
+  return DateTime.fromJSDate(ref, { zone: ZONE }).startOf('day').toUTC().toISO()!;
+}

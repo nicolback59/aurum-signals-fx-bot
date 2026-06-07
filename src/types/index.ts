@@ -55,6 +55,7 @@ export interface BotConfig {
   ibAccount: string;
   paperTrading: boolean;
   minScore: number;
+  maxTradesPerDay: number;
   maxTradesPerWeek: number;
   riskDollars: number;
   targetDollars: number;
@@ -123,7 +124,10 @@ export interface SafetyResult {
 export interface SafetyContext {
   botEnabled: boolean;
   apiConnected: boolean;
+  connectionStable: boolean;
   now: Date;
+  dailyTradeCount: number;
+  maxTradesPerDay: number;
   weeklyTradeCount: number;
   maxTradesPerWeek: number;
   score: number;
@@ -187,6 +191,8 @@ export interface BotState {
   marketOpen: boolean;
   inTradingWindow: boolean;
   nextWindowMs: number | null;
+  dailyTradeCount: number;
+  maxTradesPerDay: number;
   weeklyTradeCount: number;
   maxTradesPerWeek: number;
   bias: BiasState;
