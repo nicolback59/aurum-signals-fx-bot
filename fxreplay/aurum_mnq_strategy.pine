@@ -1,0 +1,142 @@
+//@version=5
+strategy(
+  title        = "Aurum FX Bot — MNQ NY Open Strategy",
+  overlay      = true,
+  default_qty_type  = strategy.fixed,
+  default_qty_value = 1,
+  initial_capital   = 10000,
+  commission_type   = strategy.commission.cash_per_contract,
+  commission_value  = 0.62
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INPUTS
+// ─────────────────────────────────────────────────────────────────────────────
+minScore       = input.int(80,  "Min Signal Score (0–100)", minval=0, maxval=100)
+atrMult        = input.float(1.5, "ATR Stop Multiplier",   minval=0.5, maxval=5.0, step=0.1)
+minSlPts       = input.float(4.0, "Min Stop Distance (pts)", minval=1.0)
+trendW         = input.float(1.0, "Trend Weight",     minval=0.0, maxval=3.0, step=0.1)
+vwapW          = input.float(1.0, "VWAP Weight",      minval=0.0, maxval=3.0, step=0.1)
+momentumW      = input.float(1.0, "Momentum Weight",  minval=0.0, maxval=3.0, step=0.1)
+structW        = input.float(1.0, "Structure Weight", minval=0.0, maxval=3.0, step=0.1)
+showScore      = input.bool(true, "Show Score Labels")
+showVwap       = input.bool(true, "Show VWAP")
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NY OPEN WINDOW  9:30–10:30 AM ET
+// ─────────────────────────────────────────────────────────────────────────────
+inWindow = not na(time("1", "0930-1030", "America/New_York"))
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INDICATORS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// EMA 9/21 on current (1m) timeframe
+ema9_1m  = ta.ema(close, 9)
+ema21_1m = ta.ema(close, 21)
+
+// EMA 9/21 on 5m timeframe
+ema9_5m  = request.security(syminfo.tickerid, "5", ta.ema(close, 9),  lookahead=barmerge.lookahead_off)
+ema21_5m = request.security(syminfo.tickerid, "5", ta.ema(close, 21), lookahead=barmerge.lookahead_off)
+
+// ATR (14)
+atrVal = ta.atr(14)
+
+// ADX (14)
+[diPlus, diMinus, adxVal] = ta.dmi(14, 14)
+
+// VWAP (session)
+vwapVal = ta.vwap(hlc3)
+
+// ROC (10 bars)
+roc = (close - close[10]) / close[10]
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TREND
+// ─────────────────────────────────────────────────────────────────────────────
+trendLong  = ema9_1m > ema21_1m and ema9_5m > ema21_5m
+trendShort = ema9_1m < ema21_1m and ema9_5m < ema21_5m
+hasTrend   = trendLong or trendShort
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCORING  (mirrors signal_engine.ts — max 100 pts)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Trend component (up to 30)
+trendStrength = math.min(30.0, math.abs(ema9_1m - ema21_1m) / ema21_1m * 5000.0)
+trendScore    = trendStrength * trendW
+
+// VWAP component (up to 20)
+aboveVwap = close > vwapVal
+vwapAligned = (trendLong and aboveVwap) or (trendShort and not aboveVwap)
+vwapDist    = math.abs(close - vwapVal) / vwapVal
+vwapScore   = vwapAligned ? math.min(20.0, 10.0 + vwapDist * 2000.0) * vwapW : 0.0
+
+// Momentum/ROC component (up to 20)
+rocAligned    = (trendLong and roc > 0) or (trendShort and roc < 0)
+momentumScore = rocAligned ? math.min(20.0, math.abs(roc) * 10000.0) * momentumW : 0.0
+
+// Structure component (up to 10)  — last close vs 5 bars ago
+structOk    = (trendLong and close > close[4]) or (trendShort and close < close[4])
+structScore = structOk ? 10.0 * structW : 0.0
+
+// ES breadth placeholder (up to 20) — approximate using NQ correlation on same chart
+// Full ES confirmation requires a second data feed; we give partial credit (5 pts)
+// when VWAP and EMA already confirm — replicate the engine's esConfirm fallback.
+breadthScore = vwapAligned and (trendLong or trendShort) ? 5.0 : 0.0
+
+totalScore = math.min(100.0, math.round(trendScore + vwapScore + momentumScore + structScore + breadthScore))
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SIGNAL TYPE (mirrors signal classification in signal_engine.ts)
+// ─────────────────────────────────────────────────────────────────────────────
+isMomentum    = adxVal > 25
+isVwapBounce  = not isMomentum and aboveVwap == trendLong
+isPullback    = not isMomentum and not isVwapBounce
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENTRY CONDITIONS
+// ─────────────────────────────────────────────────────────────────────────────
+slDist  = math.max(atrVal * atrMult, minSlPts)
+longOk  = hasTrend and trendLong  and totalScore >= minScore and inWindow
+shortOk = hasTrend and trendShort and totalScore >= minScore and inWindow
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ORDERS
+// ─────────────────────────────────────────────────────────────────────────────
+if longOk and strategy.position_size == 0
+    sl_price  = close - slDist
+    tp_price  = close + slDist * 2.0
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Long Exit", "Long", stop=sl_price, limit=tp_price)
+
+if shortOk and strategy.position_size == 0
+    sl_price  = close + slDist
+    tp_price  = close - slDist * 2.0
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Short Exit", "Short", stop=sl_price, limit=tp_price)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VISUALS
+// ─────────────────────────────────────────────────────────────────────────────
+plot(showVwap ? vwapVal : na, "VWAP", color=color.new(color.yellow, 20), linewidth=2)
+plot(ema9_1m,  "EMA 9 (1m)",  color=color.new(color.aqua,  30), linewidth=1)
+plot(ema21_1m, "EMA 21 (1m)", color=color.new(color.orange, 30), linewidth=1)
+
+// NY Open window shading
+bgcolor(inWindow ? color.new(color.blue, 92) : na, title="NY Open Window")
+
+// Entry arrows
+plotshape(longOk  and strategy.position_size[1] == 0, title="Long Signal",  style=shape.triangleup,   location=location.belowbar, color=color.green, size=size.small)
+plotshape(shortOk and strategy.position_size[1] == 0, title="Short Signal", style=shape.triangledown, location=location.abovebar, color=color.red,   size=size.small)
+
+// Score label on signal bar
+if showScore and (longOk or shortOk) and strategy.position_size[1] == 0
+    sigType = isMomentum ? "MOM" : isVwapBounce ? "VWAP" : "PB"
+    dir     = trendLong ? "L" : "S"
+    label.new(bar_index, trendLong ? low - atrVal : high + atrVal,
+      str.tostring(totalScore) + " " + sigType + " " + dir,
+      style   = trendLong ? label.style_label_up : label.style_label_down,
+      color   = color.new(trendLong ? color.green : color.red, 20),
+      textcolor = color.white,
+      size    = size.small)
