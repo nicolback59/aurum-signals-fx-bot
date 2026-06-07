@@ -123,10 +123,8 @@ function isWeekday(ts: Date): boolean {
 export function isMarketOpen(ts: Date): { open: boolean } {
   if (!isWeekday(ts)) return { open: false };
   const hhmm = getEtHhmm(ts);
-  const day = getEtDay(ts);
-  // Regular session: 09:30–16:00 ET Mon–Fri (Fri closes at 16:00)
-  if (day === 'Fri') return { open: hhmm >= 930 && hhmm < 1600 };
-  return { open: hhmm >= 930 && hhmm < 1600 };
+  // Allow bot to start 10 minutes early (9:20 ET) so it can warm up data before the 9:30 window
+  return { open: hhmm >= 920 && hhmm < 1600 };
 }
 
 // ── Technical indicators ──────────────────────────────────────────────────────

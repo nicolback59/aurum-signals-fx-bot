@@ -46,7 +46,7 @@ export type TradeStatus = 'OPEN' | 'WIN' | 'LOSS' | 'BE' | 'CANCELLED' | 'REJECT
 
 // ── Config (sourced from env vars) ────────────────────────────────────────────
 
-export type BrokerType = 'ib' | 'topstep' | 'alphafutures' | 'rithmic';
+export type BrokerType = 'ib' | 'topstep' | 'tradovate' | 'rithmic';
 
 export interface BotConfig {
   ibHost: string;
