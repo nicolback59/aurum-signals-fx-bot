@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { SignalPanel } from './SignalPanel';
 import { TradePanel } from './TradePanel';
 import type { BotState, ConnectionPhase, ApiAuthStatus, StartupLogEntry } from '../../types';
@@ -337,6 +337,126 @@ function ConnectionDataFeedSection({ state }: { state: BotState | null }): JSX.E
   );
 }
 
+// ── Inline Broker Config ──────────────────────────────────────────────────────
+
+function BrokerConfigCard({
+  state,
+  onValidate,
+  validating,
+}: {
+  state: BotState | null;
+  onValidate: () => void;
+  validating: boolean;
+}): JSX.Element {
+  const [brokerType, setBrokerType] = useState(state?.brokerType ?? 'topstep');
+  const [apiKey, setApiKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedMsg, setSavedMsg] = useState('');
+
+  useEffect(() => {
+    void window.aurum.getSettings().then((s) => {
+      setBrokerType(s.broker_type ?? 'topstep');
+      setApiKey(s.broker_api_key ?? '');
+    });
+  }, []);
+
+  const needsApiKey = brokerType !== 'ib';
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    setSavedMsg('');
+    await window.aurum.saveSettings({ broker_type: brokerType, broker_api_key: apiKey });
+    setSaving(false);
+    setSavedMsg('Saved!');
+    setTimeout(() => setSavedMsg(''), 2500);
+  }, [brokerType, apiKey]);
+
+  const canValidate = needsApiKey && apiKey.trim().length > 0 && !validating && state?.runState !== 'running';
+
+  return (
+    <div className="card">
+      <h3>Broker Connection</h3>
+      <div className="cc-conn-table">
+        <div className="cc-conn-row">
+          <span className="cc-conn-label">Broker Type</span>
+          <span className="cc-conn-value">
+            <select
+              value={brokerType}
+              onChange={(e) => setBrokerType(e.target.value)}
+              disabled={saving || state?.runState === 'running'}
+              style={{ background: '#1a1a2e', color: '#e0e0e0', border: '1px solid #333', borderRadius: 4, padding: '4px 8px' }}
+            >
+              <option value="topstep">Topstep (ProjectX)</option>
+              <option value="alphafutures">Alpha Futures</option>
+              <option value="ib">Interactive Brokers (TWS)</option>
+              <option value="rithmic">Rithmic</option>
+            </select>
+          </span>
+        </div>
+        {needsApiKey && (
+          <div className="cc-conn-row">
+            <span className="cc-conn-label">API Key</span>
+            <span className="cc-conn-value" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                type={showKey ? 'text' : 'password'}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Paste your API key"
+                disabled={saving || state?.runState === 'running'}
+                spellCheck={false}
+                style={{ background: '#1a1a2e', color: '#e0e0e0', border: '1px solid #333', borderRadius: 4, padding: '4px 8px', flex: 1, minWidth: 0 }}
+              />
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setShowKey((v) => !v)}
+                style={{ minWidth: 50, fontSize: 12 }}
+              >
+                {showKey ? 'Hide' : 'Show'}
+              </button>
+            </span>
+          </div>
+        )}
+        <div className="cc-conn-row">
+          <span className="cc-conn-label">Status</span>
+          <span className="cc-conn-value" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <StatusBadge
+              label={state?.apiValidated ? 'VALIDATED' : state?.apiKeyConfigured ? 'NOT VALIDATED' : 'NOT CONFIGURED'}
+              color={state?.apiValidated ? 'green' : state?.apiKeyConfigured ? 'yellow' : 'gray'}
+            />
+          </span>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}>
+        <button
+          className="btn btn-start"
+          onClick={handleSave}
+          disabled={saving || state?.runState === 'running'}
+          style={{ fontSize: 13 }}
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+        {needsApiKey && (
+          <button
+            className={`btn cc-btn-validate ${!canValidate ? 'cc-btn-validate-disabled' : ''}`}
+            onClick={onValidate}
+            disabled={!canValidate}
+            style={{ fontSize: 13 }}
+          >
+            {validating ? (
+              <><span className="cc-spin" />VALIDATING...</>
+            ) : (
+              'Validate Connection'
+            )}
+          </button>
+        )}
+        {savedMsg && <span style={{ color: '#4caf50', fontSize: 13 }}>{savedMsg}</span>}
+      </div>
+    </div>
+  );
+}
+
 // ── Main ControlCenter ────────────────────────────────────────────────────────
 
 interface Props {
@@ -365,8 +485,9 @@ export function ControlCenter({
   const apiKeyConfigured = state?.apiKeyConfigured ?? false;
   const apiValidated = state?.apiValidated ?? false;
 
-  const canStart = !running && !connecting && !busy && (!needsApiKey || (apiKeyConfigured && apiValidated));
-  const canStop = (running || connecting) && !busy;
+  const marketOpen = state?.marketOpen ?? false;
+  const canStart = !running && !connecting && !busy && marketOpen && (!needsApiKey || (apiKeyConfigured && apiValidated));
+  const canStop = state?.runState !== 'stopped' && !busy;
   const canValidate = needsApiKey && apiKeyConfigured && !validating && !running;
 
   const cs = state?.connectionStatus;
@@ -377,13 +498,17 @@ export function ControlCenter({
   function getStartDisabledReason(): string {
     if (busy) return 'Operation in progress';
     if (running || connecting) return 'Bot is already running';
-    if (needsApiKey && !apiKeyConfigured) return 'Enter and save an API key in Settings first';
+    if (!marketOpen) return 'Market is closed — bot can only start during market hours';
+    if (needsApiKey && !apiKeyConfigured) return 'Enter and save an API key in the Broker Connection section above';
     if (needsApiKey && !apiValidated) return 'Click Validate Connection to verify your API key';
     return '';
   }
 
   return (
     <div className="control-center">
+
+      {/* ── Broker Connection ─────────────────────────────────────────────────── */}
+      <BrokerConfigCard state={state} onValidate={onValidate} validating={validating} />
 
       {/* ── Bot Controls Section ─────────────────────────────────────────────── */}
       <div className="card cc-controls-card">
@@ -465,11 +590,19 @@ export function ControlCenter({
           )}
         </div>
 
-        {needsApiKey && !apiKeyConfigured && (
+        {!marketOpen && !running && !connecting && (
           <div className="cc-setup-banner">
             <span className="cc-setup-icon">&#9432;</span>
-            Go to <strong>Settings</strong> to configure your broker API key for{' '}
-            {brokerDisplayName(brokerType)}, then return here to validate and start the bot.
+            Market is currently <strong>closed</strong>. Start Bot will be enabled when the market opens.
+            {state?.nextWindowMs != null && state.nextWindowMs > 0 && (
+              <> Next NY Open window in <strong>{fmtCountdown(state.nextWindowMs)}</strong>.</>
+            )}
+          </div>
+        )}
+        {marketOpen && needsApiKey && !apiKeyConfigured && (
+          <div className="cc-setup-banner">
+            <span className="cc-setup-icon">&#9432;</span>
+            Enter and save your API key in the <strong>Broker Connection</strong> section above, then click Validate to start the bot.
           </div>
         )}
       </div>
